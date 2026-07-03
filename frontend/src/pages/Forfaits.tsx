@@ -1,6 +1,5 @@
 import { useEffect, useState } from 'react';
 import {NavBar} from '@/components/ui/NavBar';
-
 interface Fee {
     fee_id: number;
     name_fee: string;
