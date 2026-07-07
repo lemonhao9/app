@@ -1,0 +1,8 @@
+services:
+  api:
+    restart: always
+    ports: []
+    volumes: []
+    command: sh -c "npm run migrate && npm start"
+    environment:
+      NODE_ENV: production
