@@ -5,6 +5,7 @@ backend/node_modules/
 
 # variables d'environnement
 .env
+.env.example
 *.local
 
 # build
