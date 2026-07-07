@@ -82,6 +82,6 @@ jobs:
           script: |
             cd /opt/homecycl-home
             git pull origin main
-            docker-compose -f docker-compose.yml -f docker-compose.prod.yml --profile production up -d --build
+            docker compose -f docker-compose.yml -f docker-compose.prod.yml --profile production up -d --build
             sleep 5
             curl -f -L https://homecyclhome.lemonhao.fr/api/v1/health || exit 1
