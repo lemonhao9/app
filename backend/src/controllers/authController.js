@@ -1,11 +1,6 @@
 import {z} from 'zod';
 import * as authService from '../services/authServices.js';
-
-const signupSchema = z.object({
-    email: z.string().email(),
-    password: z.string().min(8, 'Le mot de passe doit contenir au moins 8 caractères minimum afin d\'être robuste'),
-    name: z.string().min(1).max(255, 'Le nom ne doit pas dépasser 255 caractères'),
-});
+import { userSchema } from '../utils/schemas.js';
 
 const loginSchema = z.object({
     email: z.string().email(),
@@ -13,7 +8,7 @@ const loginSchema = z.object({
 });
 
 export async function signup(req,res) {
-    const parsed = signupSchema.safeParse(req.body);
+    const parsed = userSchema.safeParse(req.body);
     if (!parsed.success) {
         return res.status(400).json({error: parsed.error.flatten()});
     }

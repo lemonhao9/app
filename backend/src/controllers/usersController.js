@@ -1,14 +1,9 @@
 import {z} from 'zod';
 import * as userService from '../services/userService.js';
-
-const createTechnicianSchema = z.object({
-    email: z.string().email(),
-    password: z.string().min(8, 'Le mot de passe doit contenir au moins 8 caractères minimum afin d\'être robuste'),
-    name: z.string().min(1).max(255, 'Le nom ne doit pas dépasser 255 caractères'),
-});
+import { userSchema } from '../utils/schemas.js';
 
 export async function createTechnician(req, res) {
-    const parsed = createTechnicianSchema.safeParse(req.body);
+    const parsed = userSchema.safeParse(req.body);
     if (!parsed.success) {
         return res.status(400).json({error: parsed.error.flatten()});
     }
