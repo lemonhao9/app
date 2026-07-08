@@ -6,3 +6,4 @@ services:
     command: sh -c "npm run migrate && npm start"
     environment:
       NODE_ENV: production
+      FRONTEND_URL: ${FRONTEND_URL}
