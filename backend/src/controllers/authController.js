@@ -7,7 +7,7 @@ const loginSchema = z.object({
     password: z.string().min(1),
 });
 
-export async function signup(req,res) {
+export async function signup(req,res,next) {
     const parsed = userSchema.safeParse(req.body);
     if (!parsed.success) {
         return res.status(400).json({error: parsed.error.flatten()});
@@ -16,11 +16,11 @@ export async function signup(req,res) {
         const {token, user} = await authService.signup(parsed.data);
         res.status(201).json({token, user});
     } catch (err) {
-        res.status(err.status || 500).json({error: err.message});
+        next(err);
     }
 }
 
-export async function login(req,res) {
+export async function login(req,res,next) {
     const parsed = loginSchema.safeParse(req.body);
     if (!parsed.success) {
         return res.status(400).json({error: parsed.error.flatten()});
@@ -29,7 +29,7 @@ export async function login(req,res) {
         const {token, user} = await authService.login(parsed.data);
         res.status(200).json({token, user});
     } catch (err) {
-        res.status(err.status || 500).json({error: err.message});
+        next(err);
     }
 }
 

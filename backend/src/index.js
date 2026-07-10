@@ -4,7 +4,7 @@ import { createServer } from 'http';
 import { Server } from 'socket.io';
 import cors from 'cors';
 import rateLimit from 'express-rate-limit';
-
+import { errorHandler } from './middlewares/errorHandler.js';
 import { authenticateSocket } from './middlewares/authenticateSocket.js';
 import router from './routes/index.js';
 
@@ -36,6 +36,9 @@ app.use('/api/v1', router);
 
 // Health check
 app.get('/api/v1/health', (_req, res) => res.json({ status: 'ok' }));
+
+// Middleware de gestion des erreurs
+app.use(errorHandler);
 
 // Socket.io — authentification JWT au handshake
 io.use(authenticateSocket);
