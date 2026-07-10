@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import {NavBar} from '@/components/ui/NavBar';
+import { NavBar } from '@/components/ui/NavBar';
 interface Fee {
     fee_id: number;
     name_fee: string;
@@ -11,11 +11,11 @@ interface Fee {
     optional_price: string | null;
 }
 
-interface Product{
+interface Product {
     product_id: number;
-    name:string;
-    category:string;
-    price:string;
+    name: string;
+    category: string;
+    price: string;
 }
 
 function formatDuration(minutes: number): string {
@@ -58,7 +58,7 @@ function FeeCard({ fee }: { fee: Fee }) {
             {offertLines.length > 0 && (
                 <div className="text-xs">
                     <p className="font-semibold">Offert :</p>
-                    {offertLines.map((line, i) => 
+                    {offertLines.map((line, i) =>
                         <p key={i} className="text-gray-600">{line}</p>
                     )}
                 </div>
@@ -67,7 +67,7 @@ function FeeCard({ fee }: { fee: Fee }) {
     );
 }
 
-function ProductsColumn ({ products }: { products: Product[] }) {
+function ProductsColumn({ products }: { products: Product[] }) {
     const produits = products.filter(p => p.category === 'produit');
     const services = products.filter(p => p.category === 'service');
 
@@ -85,14 +85,14 @@ function ProductsColumn ({ products }: { products: Product[] }) {
                     </div>
                 ))}
             </div>
-                {services.length > 0 && (
-                    <div className="mt-2">
-                        <p className="font-bold text-sm mb-1">Services complémentaires</p>
-                        {services.map(p => (
-                            <p key={p.product_id} className="text-xs text-gray-600">{p.name}</p>
-                        ))}
-                    </div>
-                )}
+            {services.length > 0 && (
+                <div className="mt-2">
+                    <p className="font-bold text-sm mb-1">Services complémentaires</p>
+                    {services.map(p => (
+                        <p key={p.product_id} className="text-xs text-gray-600">{p.name}</p>
+                    ))}
+                </div>
+            )}
         </div>
     );
 }
@@ -100,10 +100,22 @@ function ProductsColumn ({ products }: { products: Product[] }) {
 export function Forfaits() {
     const [fees, setFees] = useState<Fee[]>([]);
     const [products, setProducts] = useState<Product[]>([]);
+    const [loading, setLoading] = useState(true);
+    const [error, setError] = useState<string | null>(null);
 
     useEffect(() => {
-        fetch('/api/v1/fees').then(r=> r.json()).then(setFees);
-        fetch('/api/v1/products').then(r=> r.json()).then(setProducts);
+        setLoading(true);
+        setError(null);
+        Promise.all([
+            fetch('/api/v1/fees').then(r => { if (!r.ok) throw new Error(); return r.json(); }),
+            fetch('/api/v1/products').then(r => { if (!r.ok) throw new Error(); return r.json(); }),
+        ])
+            .then(([feesData, productsData]) => {
+                setFees(feesData);
+                setProducts(productsData);
+            })
+            .catch(() => setError('Impossible de charger les forfaits pour le moment. Réessayez plus tard.'))
+            .finally(() => setLoading(false));
     }, []);
 
     return (
@@ -115,12 +127,21 @@ export function Forfaits() {
             <main className="px-8 pt-24 pb-10 max-w-[1400px] mx-auto">
                 <h1 className="text-2xl font-black uppercase tracking-wide mb-6">Nos forfaits</h1>
 
-                <div className="grid grid-cols-5 gap-4 items-start">
-                    {fees.map(fee => (
-                        <FeeCard key={fee.fee_id} fee={fee} />
-                    ))}
-                    <ProductsColumn products={products} />
-                </div>
+                {loading && (
+                    <p className="text-sm text-gray-500">Chargement des forfaits…</p>
+                )}
+
+                {error && (
+                    <p className="text-sm text-red-600">{error}</p>
+                )}
+
+                {!loading && !error && (
+                    <div className="grid grid-cols-5 gap-4 items-start">
+                        {fees.map(fee => (
+                            <FeeCard key={fee.fee_id} fee={fee} />
+                        ))}
+                        <ProductsColumn products={products} />
+                    </div>)}
             </main>
         </div>
     );
