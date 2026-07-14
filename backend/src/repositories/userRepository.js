@@ -1,16 +1,16 @@
-import {query} from '../utils/db.js';
+import pool, {query} from '../utils/db.js';
 
 export async function findByEmail(email) {
     const results = await query('SELECT * FROM "user" WHERE email = $1', [email]);
     return results.rows[0] ?? null;
 }
 
-export async function create({email, passwordHash, name, role = 'client'}) {
-    const results = await query(
-        `INSERT INTO "user" (email, password_hash, name, role)
-         VALUES ($1, $2, $3, $4)
-         RETURNING user_id, email, name, role, picture, is_active`,
-        [email, passwordHash, name, role]
+export async function create({email, passwordHash, name, phone = null, role = 'client'}, runner = pool) {
+    const results = await runner.query(
+        `INSERT INTO "user" (email, password_hash, name, phone, role)
+         VALUES ($1, $2, $3, $4, $5)
+         RETURNING user_id, email, name, phone, role, picture, is_active`,
+        [email, passwordHash, name, phone, role]
     );
     return results.rows[0];
 }

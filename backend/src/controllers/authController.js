@@ -1,6 +1,6 @@
 import {z} from 'zod';
 import * as authService from '../services/authServices.js';
-import { userSchema } from '../utils/schemas.js';
+import { signupSchema } from '../utils/schemas.js';
 
 const loginSchema = z.object({
     email: z.string().email(),
@@ -8,7 +8,7 @@ const loginSchema = z.object({
 });
 
 export async function signup(req,res,next) {
-    const parsed = userSchema.safeParse(req.body);
+    const parsed = signupSchema.safeParse(req.body);
     if (!parsed.success) {
         return res.status(400).json({error: parsed.error.flatten()});
     }
