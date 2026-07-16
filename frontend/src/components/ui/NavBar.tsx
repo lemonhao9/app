@@ -1,13 +1,24 @@
 import { useState } from 'react';
-import { Link } from "react-router-dom";
+import { Link, useNavigate } from "react-router-dom";
 import { Button } from './button';
-import { Menu, X } from 'lucide-react';
+import { Menu, X, ChevronDown } from 'lucide-react';
+import { useAuth } from '@/context/AuthContext';
 import logoSrc from '@/assets/LELOGOHCHwhite.svg'
 import logoSrcDark from '@/assets/LELOGOHCHblack.svg'
 
 export function NavBar({ dark = false }: { dark?: boolean }) {
     const [isOpen, setIsOpen] = useState(false);
+    const [userMenuOpen, setUserMenuOpen] = useState(false);
+    const {user, loading, logout} = useAuth();
+    const navigate = useNavigate();
     const textColor = dark ? 'text-gray-900' : 'text-white';
+
+function handleLogout() {
+    logout();
+    setUserMenuOpen(false);
+    setIsOpen(false);
+    navigate('/');
+}
 
     return (
         <nav className="absolute top-0 left-0 right-0 z-20 px-6 sm:px-10 py-5">
@@ -26,21 +37,32 @@ export function NavBar({ dark = false }: { dark?: boolean }) {
                 </div>
 
             <div className="hidden md:flex items-center gap-3">
-                    <Button asChild variant="outline" className={`${dark ? 'border-gray-900' : 'border-white'} ${textColor} bg-transparent hover:bg-white hover:text-gray-900`}>
-                        <Link to="/login">Se connecter</Link>
-                    </Button>
-                    <Button asChild variant="outline" className={`${dark ? 'border-gray-900' : 'border-white'} ${textColor} bg-transparent hover:bg-white hover:text-gray-900`}>
-                        <Link to="/signup">S'inscrire</Link>
-                    </Button>
+                {!loading && (
+                    user ? (
+                        <div className="relative">
+                            <button type="button" onClick={() => setUserMenuOpen((prev) => !prev)} className={`${textColor} font-medium flex items-center gap-1`}>
+                                {user.name} <ChevronDown size={16} />
+                            </button>
+                            {userMenuOpen && (
+                                <div className="absolute right-0 mt-2 bg-white rounded-md shadow-lg border py-1 min-w-[160px]">
+                                    <button type="button" onClick={handleLogout} className="w-full text-left px-4 py-2 text-gray-900 hover:bg-gray-100">Se déconnecter</button>
+                                </div>
+                            )}
+                        </div>
+                    ) : (
+                        <>
+                        <Button asChild variant="outline" className={`${dark ? 'border-gray-900' : 'border-white'} ${textColor} bg-transparent hover:bg-white hover:text-gray-900`}>
+                            <Link to="/login">Se connecter</Link>
+                        </Button>
+                        <Button asChild variant="outline" className={`${dark ? 'border-gray-900' : 'border-white'} ${textColor} bg-transparent hover:bg-white hover:text-gray-900`}>
+                            <Link to="/signup">S'inscrire</Link>
+                        </Button>
+                        </>
+                    )
+                )}
                 </div>
-
-                <button
-                    type="button"
-                    onClick={() => setIsOpen((prev) => !prev)}
-                    aria-label={isOpen ? 'Fermer le menu' : 'Ouvrir le menu'}
-                    aria-expanded={isOpen}
-                    className={`md:hidden ${textColor}`}
-                >
+                
+                <button type="button" onClick={() => setIsOpen((prev) => !prev)} aria-label={isOpen ? 'Fermer le menu' : 'Ouvrir le menu'} aria-expanded={isOpen} className={`md:hidden ${textColor}`}>
                     {isOpen ? <X size={28} /> : <Menu size={28} />}
                 </button>
             </div>
@@ -53,14 +75,23 @@ export function NavBar({ dark = false }: { dark?: boolean }) {
                     <Button asChild variant="outline" className="w-full">
                         <Link to="/reserver" onClick={() => setIsOpen(false)}>Prendre rendez-vous</Link>
                     </Button>
-                    <div className="flex flex-col gap-3">
-                        <Button asChild variant="outline" className="w-full">
-                            <Link to="/login" onClick={() => setIsOpen(false)}>Se connecter</Link>
-                        </Button>
-                        <Button asChild variant="outline" className="w-full">
-                            <Link to="/signup" onClick={() => setIsOpen(false)}>S'inscrire</Link>
-                        </Button>
-                    </div>
+                    {!loading && (
+                        user ? (
+                            <div className="flex flex-col gap-3">
+                                <p className="text-gray-900 font-medium">{user.name}</p>
+                                <Button variant="outline" className="w-full" onClick={handleLogout}>Se déconnecter</Button>
+                            </div>
+                        ) : (
+                            <div className="flex flex-col gap-3">
+                                <Button asChild variant="outline" className="w-full">
+                                    <Link to="/login" onClick={() => setIsOpen(false)}>Se connecter</Link>
+                                </Button>
+                                <Button asChild variant="outline" className="w-full">
+                                    <Link to="/signup" onClick={() => setIsOpen(false)}>S'inscrire</Link>
+                                </Button>
+                            </div>
+                        )
+                    )}
                 </div>
             )}
         </nav>

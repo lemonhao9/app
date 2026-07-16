@@ -18,7 +18,7 @@ export async function signup(req,res,next) {
     } catch (err) {
         next(err);
     }
-}
+};
 
 export async function login(req,res,next) {
     const parsed = loginSchema.safeParse(req.body);
@@ -31,8 +31,17 @@ export async function login(req,res,next) {
     } catch (err) {
         next(err);
     }
-}
+};
 
 export async function logout(req,res) {
     res.json({message: 'Déconnexion réussie'});
-}
+};
+
+export async function getCurrentUser(req,res,next) {
+    try{
+        const user = await authService.getUserById(req.user.userId);
+        res.json({user});
+    } catch (err) {
+        next(err);
+    }
+};

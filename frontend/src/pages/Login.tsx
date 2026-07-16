@@ -2,9 +2,11 @@ import { NavBar } from '../components/ui/NavBar';
 import { Button } from '../components/ui/button';
 import { useState, type SyntheticEvent } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
+import { useAuth } from '../context/AuthContext';
 
 export function Login() {
   const navigate = useNavigate();
+  const { login } = useAuth();
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [error, setError] = useState<string | null>(null);
@@ -25,7 +27,7 @@ export function Login() {
         setError(typeof data.error === 'string' ? data.error : 'Email ou mot de passe incorrect');
         return;
       }
-      localStorage.setItem('hch_token', data.token);
+      login(data.token, data.user);
       navigate('/');
     } catch {
       setError('Une erreur est survenue. Veuillez réessayer plus tard.');

@@ -1,8 +1,9 @@
 import { NavBar } from '@/components/ui/NavBar';
 import { Button } from '@/components/ui/button';
-import { AddressAutocomplete } from '@/components/ui/AddressAutocomplete';
+import { AddressAutocomplete } from '@/components/AddressAutocomplete';
 import { useState, type SyntheticEvent } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
+import { useAuth } from '@/context/AuthContext';
 
 interface SelectedAddress {
   label: string;
@@ -14,6 +15,7 @@ interface SelectedAddress {
 
 export function Signup() {
   const navigate = useNavigate();
+  const { login } = useAuth();
   const [name, setName] = useState('');
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
@@ -47,7 +49,7 @@ export function Signup() {
         setError(typeof data.error === 'string' ? data.error : 'Erreur lors de l\'inscription. Vérifiez vos informations.');
         return;
       }
-      localStorage.setItem('hch_token', data.token);
+      login(data.token, data.user);
       navigate('/');
     } catch {
       setError('Une erreur est survenue lors de l\'inscription. Veuillez réessayer.');

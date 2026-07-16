@@ -34,15 +34,7 @@ export async function signup({email, password, name, phone, address}) {
     } finally {
         client.release();
     }
-    const safeUser = {
-        user_id: created.user_id,
-        email: created.email,
-        name: created.name,
-        role: created.role,
-        picture: created.picture ?? null,
-        phone: created.phone ?? null,
-        is_active: created.is_active,
-    };
+    const safeUser = toSafeUser(created);
     const token = generateToken(safeUser);
     return {token, user: safeUser};
 }
@@ -62,7 +54,13 @@ export async function login({email, password}) {
         throw err;
     }
 
-    const safeUser = {
+    const safeUser = toSafeUser(user);
+    const token = generateToken(safeUser);
+    return {token, user: safeUser};
+}
+
+function toSafeUser(user) {
+    return {
         user_id: user.user_id,
         email: user.email,
         name: user.name,
@@ -71,6 +69,14 @@ export async function login({email, password}) {
         picture: user.picture ?? null,
         is_active: user.is_active,
     };
-    const token = generateToken(safeUser);
-    return {token, user: safeUser};
+}
+
+export async function getUserById(userId) {
+    const user = await userRepository.findById(userId);
+    if (!user || !user.is_active) {
+        const err = new Error('Utilisateur introuvable ou inactif');
+        err.status = 401;
+        throw err;
+    }
+    return toSafeUser(user);
 }

@@ -5,6 +5,11 @@ export async function findByEmail(email) {
     return results.rows[0] ?? null;
 }
 
+export async function findById(userId) {
+    const results = await query('SELECT * FROM "user" WHERE user_id = $1', [userId]);
+    return results.rows[0] ?? null;
+}
+
 export async function create({email, passwordHash, name, phone = null, role = 'client'}, runner = pool) {
     const results = await runner.query(
         `INSERT INTO "user" (email, password_hash, name, phone, role)
