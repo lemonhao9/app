@@ -36,7 +36,7 @@ describe('authServices.signup', () => {
     });
 
     it('hashage du mdp + création du compte', async ()=> {
-        const fakeClient = { query: vi.fn().mockedResolvedValue({}), release: vi.fn() };
+        const fakeClient = { query: vi.fn().mockResolvedValue({}), release: vi.fn() };
         db.getClient.mockResolvedValue(fakeClient);
         userRepository.findByEmail.mockResolvedValue(null);
         bcrypt.hash.mockResolvedValue('hashedPassword');
