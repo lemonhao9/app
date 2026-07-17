@@ -12,9 +12,7 @@ function App() {
       <Route path="/" element={<LandingPage />} />
       <Route path="/forfaits" element={<Forfaits />} />
       <Route path="/about" element={<About />} />
-  
-        <Route path="/reserver" element={<Reserver />} />
-
+      <Route path="/reserver" element={<Reserver />} />
       <Route path="/login" element={<Login />} />
       <Route path="/signup" element={<Signup />} />
     </Routes>
