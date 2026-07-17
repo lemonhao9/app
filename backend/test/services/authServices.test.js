@@ -3,11 +3,14 @@ import bcrypt from 'bcryptjs';
 import jwt from 'jsonwebtoken';
 import * as userRepository from '../../src/repositories/userRepository.js';
 import * as authServices from '../../src/services/authServices.js';
-
+import * as addressRepository from '../../src/repositories/addressRepository.js';
+import * as db from '../../src/utils/db.js';
 
 vi.mock('bcryptjs');
 vi.mock('jsonwebtoken');
 vi.mock('../../src/repositories/userRepository.js');
+vi.mock('../../src/repositories/addressRepository.js');
+vi.mock('../../src/utils/db.js');
 
 const baseUser = {
     user_id: 1,
@@ -33,14 +36,18 @@ describe('authServices.signup', () => {
     });
 
     it('hashage du mdp + création du compte', async ()=> {
+        const fakeClient = { query: vi.fn().mockedResolvedValue({}), release: vi.fn() };
+        db.getClient.mockResolvedValue(fakeClient);
         userRepository.findByEmail.mockResolvedValue(null);
         bcrypt.hash.mockResolvedValue('hashedPassword');
         userRepository.create.mockResolvedValue(baseUser);
+        addressRepository.create.mockResolvedValue({});
 
         const result = await authServices.signup ({
             email: baseUser.email,
             password: 'password123',
             name: baseUser.name,
+            address: { label: '10 rue de la Republique', city: 'Lyon', postal_code: '69000', longitude: '4.83', latitude: '45.76' }
         });
 
         expect(bcrypt.hash).toHaveBeenCalledWith('password123', 12);
@@ -48,7 +55,8 @@ describe('authServices.signup', () => {
             email: baseUser.email,
             passwordHash: 'hashedPassword',
             name: baseUser.name,
-        });
+            phone: null
+        }, fakeClient);
         expect(result.token).toBe('fake_jwt_token');
         expect(result.user).not.toHaveProperty('passwordHash');
     });
