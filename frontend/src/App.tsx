@@ -7,6 +7,7 @@ import { Reserver } from './pages/Reserver'
 import { Login } from './pages/Login'
 import { Signup } from './pages/Signup'
 import { Profil } from './pages/Profil'
+import { MyGarage } from './pages/MyGarage'
 
 function App() {
   return (
@@ -17,6 +18,7 @@ function App() {
       <Route path="/reserver" element={<Reserver />} />
       <Route element={<ProtectedRoute />}>
       <Route path="/profil" element={<Profil />} />
+      <Route path="/my-garage" element={<MyGarage />} />
       </Route>
       <Route path="/login" element={<Login />} />
       <Route path="/signup" element={<Signup />} />
