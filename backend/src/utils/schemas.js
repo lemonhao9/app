@@ -16,3 +16,11 @@ export const signupSchema = userSchema.extend({
         latitude: z.number(),
     }),
 });
+
+export const bikeSchema = z.object({
+    brand: z.string().trim().min(1).max(255).optional(),
+    model: z.string().trim().min(1).max(255).optional(),
+    year: z.coerce.number().int().min(1900).max(new Date().getFullYear()+1).optional(),
+    bike_type: z.enum(['VTT', 'VTC', 'Route', 'Ville', 'Pliant', 'BMX', 'Enfant', 'Cargo-Triporteur']).optional(),
+    is_electric: z.enum(['true', 'false']).transform(val => val === 'true').optional(),
+});
