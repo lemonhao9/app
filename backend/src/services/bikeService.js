@@ -1,6 +1,5 @@
 import * as bikeRepository from '../repositories/bikeRepository.js';
-import fs from 'fs/promises';
-import path from 'path';
+import { deletePhotoFile } from '../utils/fileStorage.js';
 
 export async function getMyBikes(userId) {
     return await bikeRepository.findByUserId(userId);
@@ -20,12 +19,6 @@ export async function updateBike(userId, bikeId, data) {
     const photo = data.photo ?? bike.photo; // Pour garder l'ancienne photo si aucune nouvelle n'est fournie
     if (data.photo && bike.photo && data.photo !== bike.photo) deletePhotoFile(bike.photo);
     return bikeRepository.update({ bikeId, ...data, photo });
-}
-
-function deletePhotoFile(photoUrl) {
-    if (!photoUrl) return;
-    const filePath = path.join(process.cwd(), 'uploads', path.basename(photoUrl));
-    fs.unlink(filePath).catch(() => {});
 }
 
 export async function deleteBike(userId, bikeId) {

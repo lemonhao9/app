@@ -24,3 +24,8 @@ export const bikeSchema = z.object({
     bike_type: z.enum(['VTT', 'VTC', 'Route', 'Ville', 'Pliant', 'BMX', 'Enfant', 'Cargo-Triporteur']).optional(),
     is_electric: z.enum(['true', 'false']).transform(val => val === 'true').optional(),
 });
+
+export const userUpdateSchema = z.object({
+    name: z.string().min(1).max(255, "Le nom ne peut dépasser 255 caractères").optional(),
+    phone: z.string().trim().min(1).max(20).optional(),
+});
