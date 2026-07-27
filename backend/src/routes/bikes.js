@@ -8,5 +8,7 @@ const router = Router();
 router.get('/me', authenticate, bikeController.getMyBikes);
 router.post('/', authenticate, upload.single('photo'), bikeController.createBike);
 router.put('/:id', authenticate, upload.single('photo'), bikeController.updateBike);
+router.delete('/:id', authenticate, bikeController.deleteBike);
+
 
 export default router;

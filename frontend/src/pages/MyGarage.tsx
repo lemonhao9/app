@@ -105,6 +105,15 @@ export function MyGarage() {
         setEditingBikeId(null);
     }
 
+    async function handleDelete(bikeId: number) {
+        if (!window.confirm('Êtes-vous sûr de vouloir supprimer ce vélo ?')) return;
+        const token = localStorage.getItem('hch_token');
+        const res = await fetch(`/api/v1/bikes/${bikeId}`,
+            { method: 'DELETE', headers: { Authorization: `Bearer ${token}` } });
+        if (!res.ok) return;
+        setBikes(prev => prev.filter(b => b.bike_id !== bikeId));
+    }
+
     return (
         <main className="px-8 pt-24 pb-10 max-w-[1400px] mx-auto">
             <h1 className="text-2xl font-black uppercase tracking-wide mb-6">Mon garage</h1>
@@ -130,6 +139,7 @@ export function MyGarage() {
                             <p className="text-xs text-gray-600">{bike.bike_type} {bike.year ? `· ${bike.year}` : ''}</p>
                             {bike.is_electric && <p className="text-xs text-gray-600 font-semibold">Électrique</p>}
                             <Button variant="outline" className="mt-2" onClick={() => setEditingBikeId(bike.bike_id)}>Modifier</Button>
+                            <Button variant="outline" className="mt-2" onClick={() => handleDelete(bike.bike_id)}>Supprimer</Button>
                         </div>
                     )
                     )}

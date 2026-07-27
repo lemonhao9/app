@@ -37,3 +37,11 @@ export async function findById(bikeId, runner = pool) {
     );
     return results.rows[0] ?? null;
 }
+
+export async function remove(bikeId, runner = pool) {
+    const results = await runner.query(
+        `DELETE FROM bike WHERE bike_id = $1 RETURNING bike_id, photo`,
+        [bikeId]
+    );
+    return results.rows[0] ?? null;
+}

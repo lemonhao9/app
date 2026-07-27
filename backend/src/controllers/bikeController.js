@@ -37,3 +37,12 @@ export async function updateBike(req, res, next) {
         next(err);
     }
 }
+
+export async function deleteBike(req, res, next) {
+    try {
+        await bikeService.deleteBike(req.user.userId, Number(req.params.id));
+        res.json({message: 'Vélo supprimé avec succès'});
+    } catch (err) {
+        next(err);
+    }
+}
