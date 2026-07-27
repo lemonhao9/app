@@ -37,3 +37,7 @@ export const zoneSchema = z.object({
     longitude: z.number().optional(),
     geojson: z.object({type: z.string() }).passthrough(),
 });
+
+export const assignTechnicianSchema = z.object({
+    userId: z.number().int().positive(),
+});

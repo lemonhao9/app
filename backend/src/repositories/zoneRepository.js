@@ -33,3 +33,26 @@ export async function desactivate(zoneId, runner = pool) {
     );
     return results.rows[0] ?? null;
 }
+
+export async function assignTechnician(zoneId, userId, runner = pool) {
+    await runner.query(
+        `INSERT INTO positionner (zone_id, user_id) VALUES ($1, $2) ON CONFLICT DO NOTHING`,
+        [zoneId, userId]
+    );
+}
+
+export async function unassignTechnician(zoneId, userId, runner = pool) {
+    await runner.query(
+        `DELETE FROM positionner WHERE zone_id = $1 AND user_id = $2`,
+        [zoneId, userId]
+    );
+}
+
+
+export async function findTechniciansByZone(zoneId) {
+    const result = await query(
+        `SELECT u.user_id, u.name, u.email FROM positionner p JOIN "user" u ON u.user_id = p.user_id WHERE p.zone_id = $1`,
+        [zoneId]
+    );
+    return result.rows;
+}

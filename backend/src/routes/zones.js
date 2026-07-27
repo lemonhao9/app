@@ -9,5 +9,8 @@ router.get('/', authenticate, authorize('admin'), zoneController.getAllZones);
 router.post('/', authenticate, authorize('admin'), zoneController.createZone);
 router.put('/:id', authenticate, authorize('admin'), zoneController.updateZone);
 router.delete('/:id', authenticate, authorize('admin'), zoneController.desactivateZone);
+router.get('/:id/technicians', authenticate, authorize('admin'), zoneController.getZoneTechnicians);
+router.post('/:id/technicians', authenticate, authorize('admin'), zoneController.assignTechnician);
+router.delete('/:id/technicians/:user_id', authenticate, authorize('admin'), zoneController.unassignTechnician);
 
 export default router;

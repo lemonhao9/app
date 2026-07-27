@@ -1,4 +1,5 @@
 import * as zoneRepository from '../repositories/zoneRepository.js';
+import * as userRepository from '../repositories/userRepository.js';
 
 export async function getAllZones() {
     return await zoneRepository.findAll();
@@ -26,4 +27,34 @@ export async function desactivateZone(zoneId) {
         throw err;
     }
     return zone;
+}
+
+export async function assignTechnician(zoneId, userId) {
+    const zone = await zoneRepository.findById(zoneId);
+    if(!zone) {
+        const err = new Error ('Zone introuvable');
+        err.status = 404;
+        throw err;
+    }
+    const user = await userRepository.findById(userId);
+    if(!user || user.role !== 'technician') {
+        const err = new Error ('Technicien introuvable');
+        err.status = 404;
+        throw err;
+    }
+    await zoneRepository.assignTechnician(zoneId, userId);
+}
+
+export async function unassignTechnician(zoneId, userId) {
+    await zoneRepository.unassignTechnician(zoneId, userId);
+}
+
+export async function getZoneTechnicians(zoneId) {
+    const zone = await zoneRepository.findById(zoneId);
+    if(!zone) {
+        const err = new Error ('Zone introuvable');
+        err.status = 404;
+        throw err;
+    }
+    return zoneRepository.findTechniciansByZone(zoneId);
 }
