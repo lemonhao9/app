@@ -23,3 +23,17 @@ export async function createBike(req, res, next) {
         next(err);
     }
 }
+
+export async function updateBike(req, res, next) {
+    const parsed = bikeSchema.safeParse(req.body);
+    if (!parsed.success) {
+        return res.status(400).json({error: parsed.error.flatten()});
+    }
+    try {
+        const photo = req.file ? `/uploads/${req.file.filename}` : undefined;
+        const bike = await bikeService.updateBike(req.user.userId, Number(req.params.id), {...parsed.data, photo});
+        res.json({bike});
+    } catch (err) {
+        next(err);
+    }
+}
