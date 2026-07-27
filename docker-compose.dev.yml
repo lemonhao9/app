@@ -1,0 +1,8 @@
+services:
+  api:
+    ports:
+      - "${API_PORT:-3000}:3000"
+    volumes:
+      - ./backend:/app
+      - /app/node_modules
+    command: sh -c "npm run migrate && npm run dev"

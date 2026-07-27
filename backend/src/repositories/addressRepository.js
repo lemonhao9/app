@@ -9,3 +9,11 @@ export async function create({addressName, city, postalCode, longitude, latitude
     );
     return results.rows[0];
 }
+export async function findByUserId(userId, runner = pool) {
+    const results = await runner.query(
+        `SELECT address_id, address_name, city, postal_code, longitude, latitude, is_default, zone_id, user_id
+            FROM address WHERE user_id = $1 ORDER BY is_default DESC, address_id`,
+        [userId]
+    );
+    return results.rows;
+}

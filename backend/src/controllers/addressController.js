@@ -12,3 +12,12 @@ export async function geocode(req, res, next) {
         next(err);
     }
 }
+
+export async function getMyAddresses(req, res, next) {
+    try {
+        const addresses = await addressService.getMyAddresses(req.user.userId);
+        res.json({addresses});
+    } catch (err) {
+        next(err);
+    }
+}
