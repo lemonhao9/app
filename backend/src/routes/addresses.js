@@ -5,6 +5,7 @@ import { authenticate } from '../middlewares/authenticate.js';
 const router = Router();
 
 router.get('/geocode', addressController.geocode);
+router.get('/zone', addressController.getZoneForPoint);
 router.get('/me', authenticate, addressController.getMyAddresses);
 
 export default router;

@@ -2,6 +2,7 @@ import bcrypt from 'bcryptjs';
 import jwt from 'jsonwebtoken';
 import * as userRepository from '../repositories/userRepository.js'
 import * as addressRepository from '../repositories/addressRepository.js'
+import * as zoneService from './zoneService.js';
 import { getClient } from '../utils/db.js';
 
 const SALT_ROUNDS = 12;
@@ -21,12 +22,13 @@ export async function signup({email, password, name, phone, address}) {
         throw err;
     }
     const passwordHash = await bcrypt.hash(password, SALT_ROUNDS);
+    const zoneId = await zoneService.findZoneForPoint(address.latitude, address.longitude);
     const client = await getClient();
     let created;
     try{
         await client.query('BEGIN');
         created = await userRepository.create({email, passwordHash, name, phone: phone || null}, client);
-        await addressRepository.create({addressName : address.label, city: address.city, postalCode: address.postcode, longitude: address.longitude, latitude: address.latitude, isDefault: true, userId: created.user_id}, client);
+        await addressRepository.create({addressName : address.label, city: address.city, postalCode: address.postcode, longitude: address.longitude, latitude: address.latitude, isDefault: true, zoneId, userId: created.user_id}, client);
         await client.query('COMMIT');
     } catch (err) {
         await client.query('ROLLBACK');

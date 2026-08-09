@@ -4,12 +4,14 @@ import jwt from 'jsonwebtoken';
 import * as userRepository from '../../src/repositories/userRepository.js';
 import * as authServices from '../../src/services/authServices.js';
 import * as addressRepository from '../../src/repositories/addressRepository.js';
+import * as zoneService from '../../src/services/zoneService.js';
 import * as db from '../../src/utils/db.js';
 
 vi.mock('bcryptjs');
 vi.mock('jsonwebtoken');
 vi.mock('../../src/repositories/userRepository.js');
 vi.mock('../../src/repositories/addressRepository.js');
+vi.mock('../../src/services/zoneService.js');
 vi.mock('../../src/utils/db.js');
 
 const baseUser = {
@@ -42,6 +44,7 @@ describe('authServices.signup', () => {
         bcrypt.hash.mockResolvedValue('hashedPassword');
         userRepository.create.mockResolvedValue(baseUser);
         addressRepository.create.mockResolvedValue({});
+        zoneService.findZoneForPoint.mockResolvedValue(3);
 
         const result = await authServices.signup ({
             email: baseUser.email,
@@ -51,12 +54,17 @@ describe('authServices.signup', () => {
         });
 
         expect(bcrypt.hash).toHaveBeenCalledWith('password123', 12);
+        expect(zoneService.findZoneForPoint).toHaveBeenCalledWith('45.76', '4.83');
         expect(userRepository.create).toHaveBeenCalledWith({
             email: baseUser.email,
             passwordHash: 'hashedPassword',
             name: baseUser.name,
             phone: null
         }, fakeClient);
+        expect(addressRepository.create).toHaveBeenCalledWith(
+            expect.objectContaining({ zoneId: 3 }),
+            fakeClient
+        );
         expect(result.token).toBe('fake_jwt_token');
         expect(result.user).not.toHaveProperty('passwordHash');
     });

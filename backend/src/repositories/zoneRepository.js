@@ -49,6 +49,20 @@ export async function unassignTechnician(zoneId, userId, runner = pool) {
 }
 
 
+export async function findZoneForPoint(latitude, longitude) {
+    const result = await query(
+        `SELECT zone_id FROM zone
+         WHERE is_active = true
+           AND ST_Contains(
+             ST_SetSRID(ST_GeomFromGeoJSON(geojson->'geometry'), 4326),
+             ST_SetSRID(ST_MakePoint($1, $2), 4326)
+           )
+         LIMIT 1`,
+        [longitude, latitude]
+    );
+    return result.rows[0]?.zone_id ?? null;
+}
+
 export async function findTechniciansByZone(zoneId) {
     const result = await query(
         `SELECT u.user_id, u.name, u.email FROM positionner p JOIN "user" u ON u.user_id = p.user_id WHERE p.zone_id = $1`,

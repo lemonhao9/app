@@ -49,6 +49,10 @@ export async function unassignTechnician(zoneId, userId) {
     await zoneRepository.unassignTechnician(zoneId, userId);
 }
 
+export async function findZoneForPoint(latitude, longitude) {
+    return await zoneRepository.findZoneForPoint(latitude, longitude);
+}
+
 export async function getZoneTechnicians(zoneId) {
     const zone = await zoneRepository.findById(zoneId);
     if(!zone) {
