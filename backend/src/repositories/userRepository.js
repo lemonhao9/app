@@ -20,6 +20,14 @@ export async function create({email, passwordHash, name, phone = null, role = 'c
     return results.rows[0];
 }
 
+export async function update(userId, {name, phone, picture}, runner = pool) {
+    const results = await runner.query(
+        `UPDATE "user" SET name = $1, phone = $2, picture = $3 WHERE user_id = $4 RETURNING user_id, email, name, phone, role, picture, is_active`,
+        [name, phone ?? null, picture, userId]
+    );
+    return results.rows[0] ?? null;
+}
+
 export async function anonymize(userId) {
     const results = await query(
         `UPDATE "user"

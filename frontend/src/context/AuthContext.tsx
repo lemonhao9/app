@@ -15,6 +15,7 @@ interface AuthContextValue {
     loading: boolean;
     login: (token: string, user: User) => void;
     logout: () => void;
+    updateUser: (user: User) => void;
 }
 
 const AuthContext = createContext<AuthContextValue | null>(null);
@@ -62,9 +63,13 @@ export function AuthProvider({ children }: { children: ReactNode }) {
             }).catch(() => {});
         }
     }
+
+    function updateUser(updated: User) {
+        setUser(updated);
+    }
     
     return (
-        <AuthContext.Provider value={{ user, loading, login, logout }}>
+        <AuthContext.Provider value={{ user, loading, login, logout, updateUser }}>
             {children}
         </AuthContext.Provider>
     );

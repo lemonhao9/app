@@ -7,6 +7,7 @@ import rateLimit from 'express-rate-limit';
 import { errorHandler } from './middlewares/errorHandler.js';
 import { authenticateSocket } from './middlewares/authenticateSocket.js';
 import router from './routes/index.js';
+import path from 'node:path';
 
 const app = express();
 const httpServer = createServer(app);
@@ -36,6 +37,9 @@ app.use('/api/v1', router);
 
 // Health check
 app.get('/api/v1/health', (_req, res) => res.json({ status: 'ok' }));
+
+// Img uploads
+app.use('/uploads', express.static(path.join(process.cwd(), 'uploads')));
 
 // Middleware de gestion des erreurs
 app.use(errorHandler);

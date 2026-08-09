@@ -1,3 +1,9 @@
+import * as addressRepository from '../repositories/addressRepository.js';
+
+export async function getMyAddresses(userId) {
+    return await addressRepository.findByUserId(userId);
+}
+
 export async function geocode(q) {
     const enriched = q.toLowerCase().includes('lyon') ? q : `${q} Lyon`;
     const url = `https://api-adresse.data.gouv.fr/search/?q=${encodeURIComponent(enriched)}&limit=15&lon=4.8357&lat=45.7640`;

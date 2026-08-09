@@ -50,7 +50,7 @@ Or manually in two terminals:
 
 ```powershell
 # Terminal 1 — backend + database
-docker-compose up
+docker-compose -f docker-compose.yml -f docker-compose.dev.yml up
 
 # Terminal 2 — frontend
 npm run dev --prefix .\frontend
@@ -121,7 +121,7 @@ app/
 ```powershell
 # First launch / dependency change
 docker-compose down -v
-docker-compose up --build
+docker-compose -f docker-compose.yml -f docker-compose.dev.yml up
 
 # Code change only (hot-reload via nodemon)
 docker-compose restart api
