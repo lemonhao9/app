@@ -9,7 +9,8 @@ import { Signup } from './pages/Signup'
 import { Profil } from './pages/Profil'
 import { MyGarage } from './pages/MyGarage'
 import { ClientLayout } from './components/ClientLayout'
-import { ZonesPOC } from './pages/ZonesPOC'
+import { AdminLayout } from './components/AdminLayout'
+import { AdminZones } from './pages/AdminZones'
 
 function App() {
   return (
@@ -18,8 +19,12 @@ function App() {
       <Route path="/forfaits" element={<Forfaits />} />
       <Route path="/about" element={<About />} />
       <Route path="/reserver" element={<Reserver />} />
-      <Route path="/zones-poc" element={<ZonesPOC />} />
       <Route element={<ProtectedRoute />}>
+        <Route element={<ProtectedRoute roles={['admin']} />}>
+          <Route element={<AdminLayout />}>
+            <Route path="/admin/zones" element={<AdminZones />} />
+          </Route>
+        </Route>
         <Route element={<ClientLayout />}>
           <Route path="/profil" element={<Profil />} />
           <Route element={<ProtectedRoute roles={['client']} />}>
