@@ -46,3 +46,10 @@ export async function anonymize(userId) {
 export async function deleteAddresses(userId) {
     await query('DELETE FROM address WHERE user_id = $1', [userId]);
 }
+
+export async function findAll({role} = {}, runner = pool) {
+    const results = role
+        ? await runner.query('SELECT * FROM "user" WHERE role = $1 ORDER BY user_id', [role])
+        : await runner.query('SELECT * FROM "user" ORDER BY user_id');
+    return results.rows; 
+}

@@ -6,6 +6,8 @@ import { upload } from '../middlewares/upload.js';
 
 const router = Router();
 
+router.get('/', authenticate, authorize('admin'), userController.listUsers);
+
 router.post('/technicians', authenticate, authorize('admin'), userController.createTechnician);
 
 router.delete('/account', authenticate, userController.deleteAccount);

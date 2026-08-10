@@ -35,7 +35,14 @@ export const zoneSchema = z.object({
     color: z.string().regex(/^#[0-9A-Fa-f]{6}$/).optional(),
     latitude: z.number().optional(),
     longitude: z.number().optional(),
-    geojson: z.object({type: z.string() }).passthrough(),
+    geojson: z.object({
+    type: z.literal('Feature'),
+    geometry: z.object({
+        type: z.literal('Polygon'),
+        coordinates: z.array(z.array(z.tuple([z.number(), z.number()]))),
+    }),
+}).passthrough(),
+
 });
 
 export const assignTechnicianSchema = z.object({

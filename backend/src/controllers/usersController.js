@@ -37,3 +37,17 @@ export async function updateProfile(req, res, next) {
         next(err);
     }
 }
+
+const roleQuerySchema = z.object({ role: z.enum(['client', 'technician']).optional() });
+export async function listUsers(req, res, next) {
+    const parsed = roleQuerySchema.safeParse(req.query);
+    if (!parsed.success) {
+        return res.status(400).json({error: parsed.error.flatten()});
+    }
+    try {
+        const users = await userService.listUsers(parsed.data.role);
+        res.json({users});
+    } catch (err) {
+        next(err);
+    }
+}

@@ -41,3 +41,8 @@ export async function updateProfile(userId, data) {
     });
     return toSafeUser(updated);
 }
+
+export async function listUsers(role) {
+    const users = await userRepository.findAll({ role });
+    return users.map(toSafeUser);
+}
