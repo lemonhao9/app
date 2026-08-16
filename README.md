@@ -69,7 +69,7 @@ app/
 │   ├── migrations/          # node-pg-migrate — ESM format
 │   ├── src/
 │   │   ├── controllers/
-│   │   ├── middlewares/     # authenticate.js, authorize.js
+│   │   ├── middlewares/     # authenticate.js, authorize.js, upload.js
 │   │   ├── repositories/
 │   │   ├── routes/
 │   │   ├── services/
@@ -109,10 +109,29 @@ app/
 | POST | `/api/v1/auth/signup` | — | — | Create client account |
 | POST | `/api/v1/auth/login` | — | — | Login — returns JWT |
 | POST | `/api/v1/auth/logout` | — | — | Logout (stateless) |
+| GET | `/api/v1/auth/me` | ✅ | any | Get current authenticated user |
+| GET | `/api/v1/users` | ✅ | admin | List all users |
 | POST | `/api/v1/users/technicians` | ✅ | admin | Create technician account |
+| PUT | `/api/v1/users/me` | ✅ | any | Update own profile (picture upload) |
 | DELETE | `/api/v1/users/account` | ✅ | any | GDPR account deletion (anonymization) |
+| GET | `/api/v1/bikes/me` | ✅ | any | List own bikes |
+| POST | `/api/v1/bikes` | ✅ | any | Create bike (photo upload) |
+| PUT | `/api/v1/bikes/:id` | ✅ | any | Update bike (photo upload) |
+| DELETE | `/api/v1/bikes/:id` | ✅ | any | Delete bike |
+| GET | `/api/v1/addresses/geocode` | — | — | Geocode an address via BAN |
+| GET | `/api/v1/addresses/zone` | — | — | Resolve zone for a lat/lng point |
+| GET | `/api/v1/addresses/me` | ✅ | any | List own addresses |
+| GET | `/api/v1/zones` | ✅ | admin | List all zones |
+| POST | `/api/v1/zones` | ✅ | admin | Create zone |
+| PUT | `/api/v1/zones/:id` | ✅ | admin | Update zone geometry/info |
+| DELETE | `/api/v1/zones/:id` | ✅ | admin | Deactivate zone |
+| GET | `/api/v1/zones/:id/technicians` | ✅ | admin | List technicians assigned to zone |
+| POST | `/api/v1/zones/:id/technicians` | ✅ | admin | Assign technician to zone |
+| DELETE | `/api/v1/zones/:id/technicians/:user_id` | ✅ | admin | Unassign technician from zone |
 | GET | `/api/v1/fees` | — | — | List active service packages |
 | GET | `/api/v1/products` | — | — | List active additional products |
+
+> `slots` and `interventions` routers exist but are not yet implemented (empty routers, work in progress).
 
 ---
 
@@ -131,6 +150,8 @@ docker-compose logs -f api
 ```
 
 > Always run `docker-compose down -v` (not just `down`) when `package.json` dependencies change — the anonymous volume persists `node_modules` otherwise.
+
+> Production uses `docker-compose.prod.yml`, deployed via CI/CD (GitHub Actions).
 
 ---
 
