@@ -12,7 +12,8 @@
     "migrate:create": "node-pg-migrate -m migrations create",
     "migrate:down": "node-pg-migrate -m migrations down 1",
     "test:coverage": "vitest run --coverage",
-    "create-admin": "node src/scripts/createAdmin.js"
+    "create-admin": "node src/scripts/createAdmin.js",
+    "import-zones": "node src/scripts/importZones.js"
   },
   "dependencies": {
     "@turf/boolean-point-in-polygon": "^6.5.0",
