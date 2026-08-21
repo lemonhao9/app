@@ -45,6 +45,15 @@ export async function desactivateZone(req, res, next) {
     }
 }
 
+export async function deleteZone(req, res, next) {
+    try {
+        await zoneService.deleteZone(Number(req.params.id));
+        res.json({ message: 'Zone supprimée définitivement' });
+    } catch (err) {
+        next(err);
+    }
+}
+
 export async function getZoneTechnicians(req, res, next) {
     try {
         const technicians = await zoneService.getZoneTechnicians(Number(req.params.id));

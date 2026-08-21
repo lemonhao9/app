@@ -12,6 +12,8 @@ import path from 'node:path';
 const app = express();
 const httpServer = createServer(app);
 
+app.set('trust proxy', 1);
+
 const io = new Server(httpServer, {
   cors: {
     origin: process.env.FRONTEND_URL || 'http://localhost:5173',
@@ -19,11 +21,9 @@ const io = new Server(httpServer, {
   },
 });
 
-// Middlewares globaux
 app.use(cors({ origin: process.env.FRONTEND_URL || 'http://localhost:5173' }));
 app.use(express.json());
 
-// Rate limiting sur les routes d'auth
 const authLimiter = rateLimit({
   windowMs: 15 * 60 * 1000,
   max: 20,
@@ -32,31 +32,24 @@ const authLimiter = rateLimit({
 });
 app.use('/api/v1/auth', authLimiter);
 
-// Routes
 app.use('/api/v1', router);
 
-// Health check
 app.get('/api/v1/health', (_req, res) => res.json({ status: 'ok' }));
 
-// Img uploads
 app.use('/uploads', express.static(path.join(process.cwd(), 'uploads')));
 
-// Middleware de gestion des erreurs
 app.use(errorHandler);
 
-// Socket.io — authentification JWT au handshake
 io.use(authenticateSocket);
 
 io.on('connection', (socket) => {
   const { userId, role } = socket.data;
 
   socket.on('join:intervention', ({ intervention_id }) => {
-    // TODO : vérifier que l'utilisateur est client ou technicien de cette intervention
     socket.join(`intervention:${intervention_id}`);
   });
 
   socket.on('message:send', async ({ intervention_id, content, photo_url }) => {
-    // TODO : persister en BDD via interventionCommentRepository
     const message = {
       user_id: userId,
       intervention_id,

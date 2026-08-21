@@ -53,6 +53,13 @@ export async function deactivateZone(id: number) {
     }));
 }
 
+export async function deleteZonePermanently(id: number) {
+    return handle(await fetch(`${BASE}/zones/${id}/permanent`, {
+        method: 'DELETE',
+        headers: authHeaders(),
+    }));
+}
+
 export async function getZoneTechnicians(id: number):Promise<{ technicians: Technician[] }> {
     return handle(await fetch(`${BASE}/zones/${id}/technicians`, { headers: authHeaders() }));
 }

@@ -2,7 +2,7 @@ import { useEffect, useState, useCallback, useRef } from 'react';
 import { MapContainer, TileLayer } from 'react-leaflet';
 import type L from 'leaflet';
 import { GeomanLayer, type GeomanLayerHandle } from '../components/GeomanLayer';
-import { getZones, createZone, deactivateZone, getZoneTechnicians, getTechnicians, assignTechnician, unassignTechnician, updateZone, type Zone, type Technician } from '../services/zones';
+import { getZones, createZone, deactivateZone, deleteZonePermanently, getZoneTechnicians, getTechnicians, assignTechnician, unassignTechnician, updateZone, type Zone, type Technician } from '../services/zones';
 import { Button } from '../components/ui/button';
 
 export function AdminZones() {
@@ -15,8 +15,10 @@ export function AdminZones() {
     const [allTechnicians, setAllTechnicians] = useState<Technician[]>([]);
     const [selectedTechnicianId, setSelectedTechnicianId] = useState<number | null>(null);
     const activeZones = zones.filter(z => z.is_active);
+    const inactiveZones = zones.filter(z => !z.is_active);
     const geomanRef = useRef<GeomanLayerHandle>(null);
     const [editingZoneId, setEditingZoneId] = useState<number | null>(null);
+    const [deleteError, setDeleteError] = useState<string | null>(null);
 
     const refresh = useCallback(() => { getZones().then(({ zones }) => setZones(zones)); }, []);
     useEffect(() => { refresh(); }, [refresh]);
@@ -38,7 +40,19 @@ export function AdminZones() {
 
     async function handleDeactivate(id: number) {
         await deactivateZone(id);
+        if (editingZoneId === id) setEditingZoneId(null);
+        if (selectedZoneId === id) setSelectedZoneId(null);
         refresh();
+    }
+
+    async function handleDeletePermanently(id: number) {
+        setDeleteError(null);
+        try {
+            await deleteZonePermanently(id);
+            refresh();
+        } catch (err) {
+            setDeleteError(err instanceof Error ? err.message : 'Impossible de supprimer la zone.');
+        }
     }
 
     useEffect(() => { getTechnicians().then(({ users }) => setAllTechnicians(users)); }, []);
@@ -198,6 +212,28 @@ export function AdminZones() {
                         </li>
                     ))}
                 </ul>
+
+                {deleteError && <p className="text-sm text-red-600 mt-2">{deleteError}</p>}
+
+                {inactiveZones.length > 0 && (
+                    <div className="mt-6">
+                        <h2 className="font-semibold mb-2">Zones désactivées</h2>
+                        <ul className="space-y-1">
+                            {inactiveZones.map(zone => (
+                                <li key={zone.zone_id} className="flex items-center justify-between text-sm px-2 py-1">
+                                    <span className="text-gray-500">{zone.name}</span>
+                                    <Button
+                                        variant="destructive"
+                                        size="sm"
+                                        onClick={() => handleDeletePermanently(zone.zone_id)}
+                                    >
+                                        Supprimer définitivement
+                                    </Button>
+                                </li>
+                            ))}
+                        </ul>
+                    </div>
+                )}
             </aside>
         </div>
         </>

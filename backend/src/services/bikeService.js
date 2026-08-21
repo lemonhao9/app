@@ -16,9 +16,17 @@ export async function updateBike(userId, bikeId, data) {
         err.status = 404;
         throw err;
     }
-    const photo = data.photo ?? bike.photo; // Pour garder l'ancienne photo si aucune nouvelle n'est fournie
+    const photo = data.photo ?? bike.photo;
     if (data.photo && bike.photo && data.photo !== bike.photo) deletePhotoFile(bike.photo);
-    return bikeRepository.update({ bikeId, ...data, photo });
+    return bikeRepository.update({
+        bikeId,
+        brand: data.brand ?? bike.brand,
+        model: data.model ?? bike.model,
+        year: data.year ?? bike.year,
+        bike_type: data.bike_type ?? bike.bike_type,
+        is_electric: data.is_electric ?? bike.is_electric,
+        photo,
+    });
 }
 
 export async function deleteBike(userId, bikeId) {
@@ -31,3 +39,4 @@ export async function deleteBike(userId, bikeId) {
     await bikeRepository.remove(bikeId);
     deletePhotoFile(bike.photo);
 }
+

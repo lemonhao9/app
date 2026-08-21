@@ -34,6 +34,27 @@ export async function desactivate(zoneId, runner = pool) {
     return results.rows[0] ?? null;
 }
 
+export async function countReferences(zoneId) {
+    const result = await query(
+        `SELECT
+            (SELECT COUNT(*) FROM address WHERE zone_id = $1) AS address_count,
+            (SELECT COUNT(*) FROM slot WHERE zone_id = $1) AS slot_count`,
+        [zoneId]
+    );
+    return {
+        addressCount: Number(result.rows[0].address_count),
+        slotCount: Number(result.rows[0].slot_count),
+    };
+}
+
+export async function remove(zoneId, runner = pool) {
+    const results = await runner.query(
+        `DELETE FROM zone WHERE zone_id = $1 RETURNING zone_id`,
+        [zoneId]
+    );
+    return results.rows[0] ?? null;
+}
+
 export async function assignTechnician(zoneId, userId, runner = pool) {
     await runner.query(
         `INSERT INTO positionner (zone_id, user_id) VALUES ($1, $2) ON CONFLICT DO NOTHING`,

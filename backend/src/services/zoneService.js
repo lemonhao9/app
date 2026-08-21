@@ -29,6 +29,22 @@ export async function desactivateZone(zoneId) {
     return zone;
 }
 
+export async function deleteZone(zoneId) {
+    const zone = await zoneRepository.findById(zoneId);
+    if(!zone) {
+        const err = new Error ('Zone introuvable');
+        err.status = 404;
+        throw err;
+    }
+    const { addressCount, slotCount } = await zoneRepository.countReferences(zoneId);
+    if (addressCount > 0 || slotCount > 0) {
+        const err = new Error('Zone encore référencée par des adresses ou des créneaux, suppression refusée');
+        err.status = 409;
+        throw err;
+    }
+    await zoneRepository.remove(zoneId);
+}
+
 export async function assignTechnician(zoneId, userId) {
     const zone = await zoneRepository.findById(zoneId);
     if(!zone) {
