@@ -15,7 +15,9 @@ import { MyGarage } from './pages/MyGarage'
 import { ClientLayout } from './components/ClientLayout'
 import { AdminLayout } from './components/AdminLayout'
 import { AdminZones } from './pages/AdminZones'
-import { Historique } from './pages/Historique';
+import { Historique } from './pages/Historique'
+import { TechnicianLayout } from './components/TechnicianLayout';
+import { TechnicianProfil } from './pages/TechnicianProfil'
 
 function App() {
   return (
@@ -45,6 +47,11 @@ function App() {
       </Route>
       <Route path="/login" element={<Login />} />
       <Route path="/signup" element={<Signup />} />
+      <Route element={<ProtectedRoute roles={['technician']} />}>
+        <Route element={<TechnicianLayout />}>
+          <Route path="/technician/profil" element={<TechnicianProfil />} />
+        </Route>
+      </Route>
     </Routes >
   )
 }
