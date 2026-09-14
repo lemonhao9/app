@@ -12,7 +12,7 @@ test ('la navigation vers "Nos Offres" affiche la page Forfaits', async ({ page 
     await expect(page.getByRole('heading', { name: 'Nos Forfaits' })).toBeVisible();
 });
 
-test("la page forfaits affiche les forfaut renvoyés par l'API", async ({ page }) => {
+test("la page forfaits affiche les forfaits renvoyés par l'API", async ({ page }) => {
     await page.route('**/api/v1/fees', (route) =>
         route.fulfill({
             json: [
@@ -31,5 +31,5 @@ test("la page forfaits affiche les forfaut renvoyés par l'API", async ({ page }
     );
     await page.route('**/api/v1/products', (route) => route.fulfill({ json: [] }));
     await page.goto('/forfaits');
-    await expect(page.getByText('Entretien')).toBeVisible();
+    await expect(page.getByRole('main').getByText('Entretien')).toBeVisible();
 });
