@@ -1,7 +1,7 @@
 {
   "name": "homecyclhome-api",
   "version": "1.0.0",
-  "description": "HomeCycl'Home — API REST + WebSocket",
+  "description": "HomeCycl'Home - API REST + WebSocket",
   "main": "src/index.js",
   "type": "module",
   "scripts": {
@@ -13,7 +13,8 @@
     "migrate:down": "node-pg-migrate -m migrations down 1",
     "test:coverage": "vitest run --coverage",
     "create-admin": "node src/scripts/createAdmin.js",
-    "import-zones": "node src/scripts/importZones.js"
+    "import-zones": "node src/scripts/importZones.js",
+    "generate-slots": "node src/scripts/generateSlots.js"
   },
   "dependencies": {
     "@turf/boolean-point-in-polygon": "^6.5.0",

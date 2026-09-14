@@ -17,3 +17,12 @@ export async function findByUserId(userId, runner = pool) {
     );
     return results.rows;
 }
+
+export async function findById(addressId, runner = pool) {
+    const results = await runner.query(
+        `SELECT address_id, address_name, city, postal_code, longitude, latitude, is_default, zone_id, user_id
+            FROM address WHERE address_id = $1`,
+        [addressId]
+    );
+    return results.rows[0] ?? null;
+}

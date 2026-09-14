@@ -1,5 +1,4 @@
 export async function up(pgm) {
-  // ENUMs — à créer avant les tables
   pgm.sql(`CREATE TYPE intervention_state AS ENUM ('prochainement', 'en cours', 'terminée', 'annulée')`)
   pgm.sql(`CREATE TYPE user_role AS ENUM ('admin', 'technician', 'client')`)
   pgm.sql(`CREATE TYPE bike_type AS ENUM ('VTT', 'VTC', 'Route', 'Ville', 'Pliant', 'BMX', 'Enfant', 'Cargo-Triporteur')`)

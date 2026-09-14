@@ -3,7 +3,7 @@ import { NavBar } from './ui/NavBar';
 
 export function ClientLayout() {
     const location = useLocation();
-    const links = [{ to: '/profil', label: 'Mon Profil'}, { to: '/my-garage', label: 'Mon Garage' }, { to: '/reserver', label: 'Prendre rendez-vous' },];
+const links = [{ to: '/profil', label: 'Mon Profil'}, { to: '/my-garage', label: 'Mon Garage' }, { to: '/historique', label: 'Historique' }, { to: '/reserver', label: 'Prendre rendez-vous' },];
 
     return (
         <div className="min-h-screen bg-gray-50">

@@ -8,6 +8,7 @@ import { errorHandler } from './middlewares/errorHandler.js';
 import { authenticateSocket } from './middlewares/authenticateSocket.js';
 import router from './routes/index.js';
 import path from 'node:path';
+import * as interventionService from './services/interventionService.js';
 
 const app = express();
 const httpServer = createServer(app);
@@ -45,19 +46,31 @@ io.use(authenticateSocket);
 io.on('connection', (socket) => {
   const { userId, role } = socket.data;
 
-  socket.on('join:intervention', ({ intervention_id }) => {
-    socket.join(`intervention:${intervention_id}`);
+  socket.on('join:intervention', async ({ intervention_id }) => {
+    try {
+      const allowed = await interventionService.canAccessIntervention(userId, role, intervention_id);
+      if (!allowed) return socket.emit('error', { message: 'Accès refusé à cette intervention' });
+      socket.join(`intervention:${intervention_id}`);
+    } catch {
+      socket.emit('error', { message: 'Une erreur est survenue' });
+    }
   });
 
   socket.on('message:send', async ({ intervention_id, content, photo_url }) => {
-    const message = {
-      user_id: userId,
-      intervention_id,
-      content: content || null,
-      photo_url: photo_url || null,
-      created_at: new Date().toISOString(),
-    };
-    io.to(`intervention:${intervention_id}`).emit('message:new', message);
+    try {
+      const allowed = await interventionService.canAccessIntervention(userId, role, intervention_id);
+      if (!allowed) return socket.emit('error', { message: 'Accès refusé à cette intervention' });
+      const message = {
+        user_id: userId,
+        intervention_id,
+        content: content || null,
+        photo_url: photo_url || null,
+        created_at: new Date().toISOString(),
+      };
+      io.to(`intervention:${intervention_id}`).emit('message:new', message);
+    } catch {
+      socket.emit('error', { message: 'Une erreur est survenue' });
+    }
   });
 });
 

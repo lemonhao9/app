@@ -48,3 +48,10 @@ export const zoneSchema = z.object({
 export const assignTechnicianSchema = z.object({
     userId: z.number().int().positive(),
 });
+
+export const createInterventionSchema = z.object({
+    bike_id: z.coerce.number().int().positive(),
+    slot_id: z.coerce.number().int().positive(),
+    address_id: z.coerce.number().int().positive(),
+    product_ids: z.array(z.coerce.number().int().positive()).default([]),
+});
