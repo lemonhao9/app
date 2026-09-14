@@ -7,7 +7,7 @@ test('landing page affiche le hero', async ({ page }) => {
 
 test ('la navigation vers "Nos Offres" affiche la page Forfaits', async ({ page }) => {
     await page.goto('/');
-    await page.getByRole('link', { name: 'Nos Offres' }).click();
+    await page.getByRole('navigation').getByRole('link', { name: 'Nos Offres' }).click();
     await expect(page).toHaveURL('/forfaits');
     await expect(page.getByRole('heading', { name: 'Nos Forfaits' })).toBeVisible();
 });
