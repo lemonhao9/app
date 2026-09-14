@@ -28,7 +28,14 @@ export const bikeSchema = z.object({
 export const userUpdateSchema = z.object({
     name: z.string().min(1).max(255, "Le nom ne peut dépasser 255 caractères").optional(),
     phone: z.string().trim().min(1).max(20).optional(),
+    email: z.string().trim().email().optional(),
+    currentPassword: z.string().min(1).optional(),
+    newPassword: z.string().min(8, "Le mot de passe doit contenir au moins 8 caractères").optional(),
+}).refine(data => !data.newPassword || !!data.currentPassword, {
+    message: "L'ancien mot de passe est requis pour changer de mot de passe",
+    path: ['currentPassword'],
 });
+
 
 export const zoneSchema = z.object({
     name: z.string().min(1).max(255),
