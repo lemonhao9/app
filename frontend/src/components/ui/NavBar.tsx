@@ -23,20 +23,20 @@ function handleLogout() {
     return (
         <nav className="absolute top-0 left-0 right-0 z-20 px-6 sm:px-10 py-5">
             <div className="flex items-center justify-between">
-                <Link to="/" className={`flex items-center gap-2 ${textColor} font-bold text-lg tracking-tight`}>
+                <Link to="/" className={`flex items-center gap-2 shrink-0 whitespace-nowrap ${textColor} font-bold text-lg tracking-tight`}>
                     <img src={dark ? logoSrcDark : logoSrc} alt="HomeCycl'Home Logo" className="h-8 w-auto" /> <span>Home Cycl' Home</span>
                 </Link>
-            
-            <div className="hidden md:flex items-center gap-10">
-                    <Link to="/" className={`${textColor} font-medium hover:text-white/80 transition-opacity`}>Accueil</Link>
-                    <Link to="/about" className={`${textColor} font-medium hover:text-white/80 transition-opacity`}>Nous découvrir</Link>
-                    <Link to="/forfaits" className={`${textColor} font-medium hover:text-white/80 transition-opacity`}>Nos offres</Link>
+
+            <div className="hidden lg:flex items-center gap-10">
+                    <Link to="/" className={`${textColor} font-medium hover:text-gray-400/80 transition-opacity`}>Accueil</Link>
+                    <Link to="/about" className={`${textColor} font-medium hover:text-gray-400/80 transition-opacity`}>Nous découvrir</Link>
+                    <Link to="/forfaits" className={`${textColor} font-medium hover:text-gray-400/80 transition-opacity`}>Nos offres</Link>
                     <Button asChild variant="outline" className={`${dark ? 'text-gray-900' : 'text-black'} hover:bg-white/20`}>
                         <Link to="/reserver">Prendre rendez-vous</Link>
                     </Button>
                 </div>
 
-            <div className="hidden md:flex items-center gap-3">
+            <div className="hidden lg:flex items-center gap-3">
                 {!loading && (
                     user ? (
                         <div className="relative">
@@ -62,13 +62,13 @@ function handleLogout() {
                 )}
                 </div>
                 
-                <button type="button" onClick={() => setIsOpen((prev) => !prev)} aria-label={isOpen ? 'Fermer le menu' : 'Ouvrir le menu'} aria-expanded={isOpen} className={`md:hidden ${textColor}`}>
+                <button type="button" onClick={() => setIsOpen((prev) => !prev)} aria-label={isOpen ? 'Fermer le menu' : 'Ouvrir le menu'} aria-expanded={isOpen} className={`lg:hidden ${textColor}`}>
                     {isOpen ? <X size={28} /> : <Menu size={28} />}
                 </button>
             </div>
 
             {isOpen && (
-                <div className="md:hidden mt-4 flex flex-col gap-4 bg-white rounded-xl p-6 shadow-lg">
+                <div className="lg:hidden mt-4 flex flex-col gap-4 bg-white rounded-xl p-6 shadow-lg">
                     <Link to="/" onClick={() => setIsOpen(false)} className="text-gray-900 font-medium">Accueil</Link>
                     <Link to="/about" onClick={() => setIsOpen(false)} className="text-gray-900 font-medium">Nous découvrir</Link>
                     <Link to="/forfaits" onClick={() => setIsOpen(false)} className="text-gray-900 font-medium">Nos offres</Link>

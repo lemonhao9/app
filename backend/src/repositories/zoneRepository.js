@@ -91,3 +91,11 @@ export async function findTechniciansByZone(zoneId) {
     );
     return result.rows;
 }
+
+export async function isTechnicianInZone(zoneId, userId) {
+    const result = await query(
+        `SELECT 1 FROM positionner WHERE zone_id = $1 AND user_id = $2 LIMIT 1`,
+        [zoneId, userId]
+    );
+    return result.rows.length > 0;
+}

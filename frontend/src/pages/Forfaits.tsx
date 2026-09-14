@@ -1,5 +1,4 @@
 import { useEffect, useState } from 'react';
-import { NavBar } from '@/components/ui/NavBar';
 interface Fee {
     fee_id: number;
     name_fee: string;
@@ -120,10 +119,6 @@ export function Forfaits() {
 
     return (
         <div className="min-h-screen bg-gray-50">
-            <div className="bg-white border-b relative">
-                <NavBar dark />
-            </div>
-
             <main className="px-8 pt-24 pb-10 max-w-[1400px] mx-auto">
                 <h1 className="text-2xl font-black uppercase tracking-wide mb-6">Nos forfaits</h1>
 

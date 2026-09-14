@@ -3,7 +3,7 @@
 Home bike repair & maintenance booking platform for **LeCycleLyonnais**, Lyon.  
 A technician is automatically assigned based on the client's address zone and availability.
 
-> Academic project — CDA certification (Concepteur Développeur d'Applications)
+> Academic project - CDA certification (Concepteur Développeur d'Applications)
 
 ---
 
@@ -12,7 +12,7 @@ A technician is automatically assigned based on the client's address zone and av
 | Layer | Tech |
 |-------|------|
 | Frontend | React 19 + TypeScript + Vite + Tailwind CSS + shadcn/ui |
-| Backend | Node.js + Express (ESM) — Clean Architecture |
+| Backend | Node.js + Express (ESM) - Clean Architecture |
 | Database | PostgreSQL 16 + node-pg-migrate |
 | Real-time | Socket.io |
 | Auth | JWT (jsonwebtoken) + bcryptjs |
@@ -42,17 +42,17 @@ Fill in the required values (see [Environment variables](#environment-variables)
 **2. Launch**
 
 ```powershell
-# Windows — opens Docker in a new window, Vite in the current one
+# Windows - opens Docker in a new window, Vite in the current one
 .\start.ps1
 ```
 
 Or manually in two terminals:
 
 ```powershell
-# Terminal 1 — backend + database
+# Terminal 1 - backend + database
 docker-compose -f docker-compose.yml -f docker-compose.dev.yml up
 
-# Terminal 2 — frontend
+# Terminal 2 - frontend
 npm run dev --prefix .\frontend
 ```
 
@@ -66,7 +66,7 @@ API: http://localhost:3000
 ```
 app/
 ├── backend/
-│   ├── migrations/          # node-pg-migrate — ESM format
+│   ├── migrations/          # node-pg-migrate - ESM format
 │   ├── src/
 │   │   ├── controllers/
 │   │   ├── middlewares/     # authenticate.js, authorize.js, upload.js
@@ -106,9 +106,9 @@ app/
 
 | Method | Route | Auth | Role | Description |
 |--------|-------|------|------|-------------|
-| POST | `/api/v1/auth/signup` | — | — | Create client account |
-| POST | `/api/v1/auth/login` | — | — | Login — returns JWT |
-| POST | `/api/v1/auth/logout` | — | — | Logout (stateless) |
+| POST | `/api/v1/auth/signup` | - | - | Create client account |
+| POST | `/api/v1/auth/login` | - | - | Login - returns JWT |
+| POST | `/api/v1/auth/logout` | - | - | Logout (stateless) |
 | GET | `/api/v1/auth/me` | ✅ | any | Get current authenticated user |
 | GET | `/api/v1/users` | ✅ | admin | List all users |
 | POST | `/api/v1/users/technicians` | ✅ | admin | Create technician account |
@@ -118,8 +118,8 @@ app/
 | POST | `/api/v1/bikes` | ✅ | any | Create bike (photo upload) |
 | PUT | `/api/v1/bikes/:id` | ✅ | any | Update bike (photo upload) |
 | DELETE | `/api/v1/bikes/:id` | ✅ | any | Delete bike |
-| GET | `/api/v1/addresses/geocode` | — | — | Geocode an address via BAN |
-| GET | `/api/v1/addresses/zone` | — | — | Resolve zone for a lat/lng point |
+| GET | `/api/v1/addresses/geocode` | - | - | Geocode an address via BAN |
+| GET | `/api/v1/addresses/zone` | - | - | Resolve zone for a lat/lng point |
 | GET | `/api/v1/addresses/me` | ✅ | any | List own addresses |
 | GET | `/api/v1/zones` | ✅ | admin | List all zones |
 | POST | `/api/v1/zones` | ✅ | admin | Create zone |
@@ -128,8 +128,8 @@ app/
 | GET | `/api/v1/zones/:id/technicians` | ✅ | admin | List technicians assigned to zone |
 | POST | `/api/v1/zones/:id/technicians` | ✅ | admin | Assign technician to zone |
 | DELETE | `/api/v1/zones/:id/technicians/:user_id` | ✅ | admin | Unassign technician from zone |
-| GET | `/api/v1/fees` | — | — | List active service packages |
-| GET | `/api/v1/products` | — | — | List active additional products |
+| GET | `/api/v1/fees` | - | - | List active service packages |
+| GET | `/api/v1/products` | - | - | List active additional products |
 
 > `slots` and `interventions` routers exist but are not yet implemented (empty routers, work in progress).
 
@@ -149,7 +149,7 @@ docker-compose restart api
 docker-compose logs -f api
 ```
 
-> Always run `docker-compose down -v` (not just `down`) when `package.json` dependencies change — the anonymous volume persists `node_modules` otherwise.
+> Always run `docker-compose down -v` (not just `down`) when `package.json` dependencies change - the anonymous volume persists `node_modules` otherwise.
 
 > Production uses `docker-compose.prod.yml`, deployed via CI/CD (GitHub Actions).
 

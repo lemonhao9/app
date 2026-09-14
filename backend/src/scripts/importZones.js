@@ -16,10 +16,6 @@ function computeCentroid(ring) {
 }
 
 async function importZones() {
-    // Doit tourner dans le conteneur `api` (DATABASE_URL n'existe que là-dedans,
-    // `db` n'est pas résolvable/exposé hors du réseau Docker) — donc chemin par
-    // défaut relatif au dossier backend/ (bind-mount `/app` en dev), pas un chemin
-    // Windows absolu qui n'existerait pas dans le conteneur Linux.
     const jsonPath = process.env.ZONES_JSON_PATH || path.join(process.cwd(), 'Zones.json');
 
     const raw = await fs.readFile(jsonPath, 'utf8');
@@ -54,10 +50,10 @@ async function importZones() {
             }
 
             const zone = await zoneRepository.create(parsed.data);
-            console.log(`✅ ${zone.name} (zone_id ${zone.zone_id})`);
+            console.log(`${zone.name} (zone_id ${zone.zone_id})`);
             created++;
         } catch (err) {
-            console.error(`❌ ${source?.name ?? '(nom inconnu)'} — ${err.message}`);
+            console.error(`${source?.name ?? '(nom inconnu)'} ${err.message}`);
             failed++;
         }
     }

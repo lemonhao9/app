@@ -13,5 +13,6 @@ router.delete('/:id/permanent', authenticate, authorize('admin'), zoneController
 router.get('/:id/technicians', authenticate, authorize('admin'), zoneController.getZoneTechnicians);
 router.post('/:id/technicians', authenticate, authorize('admin'), zoneController.assignTechnician);
 router.delete('/:id/technicians/:user_id', authenticate, authorize('admin'), zoneController.unassignTechnician);
+router.get('/:id', authenticate, zoneController.getZoneById);
 
 export default router;

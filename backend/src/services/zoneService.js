@@ -78,3 +78,13 @@ export async function getZoneTechnicians(zoneId) {
     }
     return zoneRepository.findTechniciansByZone(zoneId);
 }
+
+export async function getZoneById(zoneId) {
+    const zone = await zoneRepository.findById(zoneId);
+    if (!zone) {
+        const err = new Error('Zone introuvable');
+        err.status = 404;
+        throw err;
+    }
+    return zone;
+}

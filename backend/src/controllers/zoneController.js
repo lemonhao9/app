@@ -84,3 +84,12 @@ export async function unassignTechnician(req, res, next) {
         next(err);
     }
 }
+
+export async function getZoneById(req, res, next) {
+    try {
+        const zone = await zoneService.getZoneById(Number(req.params.id));
+        res.json({ zone });
+    } catch (err) {
+        next(err);
+    }
+}
