@@ -62,3 +62,17 @@ export const createInterventionSchema = z.object({
     address_id: z.coerce.number().int().positive(),
     product_ids: z.array(z.coerce.number().int().positive()).default([]),
 });
+
+export const completeInterventionSchema = z.object({
+    total_price: z.coerce.number().positive(),
+    is_paid: z.boolean(),
+});
+
+export const technicianHistoryQuerySchema = z.object({
+    date: z.string().regex(/^\d{4}-\d{2}-\d{2}$/).optional(),
+    zone_id: z.coerce.number().int().positive().optional(),
+    client_id: z.coerce.number().int().positive().optional(),
+    sort: z.enum(['asc', 'desc']).default('desc'),
+    limit: z.coerce.number().int().positive().max(50).default(6),
+    offset: z.coerce.number().int().nonnegative().default(0),
+});

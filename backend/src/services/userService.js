@@ -18,10 +18,16 @@ export async function createTechnician ({email, password, name}) {
 
 export async function deleteAccount(userId) {
     const user = await userRepository.findById(userId);
+    if (!user) {
+        const err = new Error('Utilisateur introuvable');
+        err.status = 404;
+        throw err;
+    }
     await userRepository.anonymize(userId);
     await userRepository.deleteAddresses(userId);
     await deletePhotoFile(user.picture);
 }
+
 
 export async function updateProfile(userId, data) {
     const current = await userRepository.findById(userId);

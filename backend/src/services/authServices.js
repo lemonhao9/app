@@ -23,7 +23,7 @@ export async function signup({email, password, name, phone, address}) {
     }
     const passwordHash = await bcrypt.hash(password, SALT_ROUNDS);
     const zoneId = await zoneService.findZoneForPoint(address.latitude, address.longitude);
-    const client = await getClient();
+        const client = await getClient();
     let created;
     try{
         await client.query('BEGIN');
@@ -32,6 +32,11 @@ export async function signup({email, password, name, phone, address}) {
         await client.query('COMMIT');
     } catch (err) {
         await client.query('ROLLBACK');
+        if (err.code === '23505') {
+            const conflict = new Error('Email déjà utilisé');
+            conflict.status = 409;
+            throw conflict;
+        }
         throw err;
     } finally {
         client.release();

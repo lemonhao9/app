@@ -3,7 +3,11 @@ import { NavBar } from './ui/NavBar';
 
 export function TechnicianLayout() {
     const location = useLocation();
-    const links = [{ to: '/technician/profil', label: 'Mon Profil' }];
+    const links = [
+    { to: '/technician/agenda', label: 'Agenda du jour' },
+    { to: '/technician/historique', label: 'Historique' },
+    { to: '/technician/profil', label: 'Mon Profil' },
+];
 
     return (
         <div className="min-h-screen bg-gray-50">

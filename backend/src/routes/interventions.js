@@ -7,9 +7,14 @@ import { upload } from '../middlewares/upload.js';
 const router = Router();
 
 router.post('/', authenticate, authorize('client'), interventionController.createIntervention);
-router.post('/:id/photos', authenticate, authorize('client'), upload.array('photos', 6), interventionController.addPhotos);
-router.patch('/:id/cancel', authenticate, authorize('client'), interventionController.cancelIntervention);
-router.get('/me', authenticate, interventionController.getMyInterventions);
-
+router.post('/:id/photos', authenticate, authorize('client', 'technician'), upload.array('photos', 6), interventionController.addPhotos);
+router.get('/me', authenticate, authorize('client'), interventionController.getMyInterventions);
+router.get('/today', authenticate, authorize('technician'), interventionController.getTodayForTechnician);
+router.get('/history', authenticate, authorize('technician'), interventionController.getHistoryForTechnician);
+router.get('/:id', authenticate, authorize('technician', 'client'), interventionController.getInterventionDetail);
+router.patch('/:id/start', authenticate, authorize('technician'), interventionController.startIntervention);
+router.patch('/:id/complete', authenticate, authorize('technician'), interventionController.completeIntervention);
+router.patch('/:id/cancel', authenticate, authorize('client', 'technician'), interventionController.cancelIntervention);
+    
 
 export default router;

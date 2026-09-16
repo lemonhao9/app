@@ -1,4 +1,5 @@
 import { getClient } from '../utils/db.js';
+import { getIO } from '../utils/socket.js';
 import * as interventionRepository from '../repositories/interventionRepository.js';
 import * as slotRepository from '../repositories/slotRepository.js';
 import * as bikeRepository from '../repositories/bikeRepository.js';
@@ -79,9 +80,9 @@ export async function createIntervention(clientId, { bike_id, slot_id, address_i
     return intervention;
 }
 
-export async function addPhotos(clientId, interventionId, files) {
-    const intervention = await interventionRepository.findById(interventionId);
-    if (!intervention || intervention.client_id !== clientId) {
+export async function addPhotos(userId, role, interventionId, files) {
+    const allowed = await canAccessIntervention(userId, role, interventionId);
+    if (!allowed) {
         const err = new Error('Intervention introuvable');
         err.status = 404;
         throw err;
@@ -93,25 +94,103 @@ export async function addPhotos(clientId, interventionId, files) {
     return photos;
 }
 
-export async function cancelIntervention(clientId, interventionId) {
+
+export async function cancelIntervention(userId, role, interventionId) {
     const intervention = await interventionRepository.findById(interventionId);
-    if (!intervention || intervention.client_id !== clientId) {
+    if (!intervention) {
+        const err = new Error('Intervention introuvable');
+        err.status = 404;
+        throw err;
+    }
+    if (role === 'client' && intervention.client_id !== userId) {
+        const err = new Error('Intervention introuvable');
+        err.status = 404;
+        throw err;
+    }
+    if (role === 'technician' && intervention.technician_id !== userId) {
+        const err = new Error('Intervention introuvable');
+        err.status = 404;
+        throw err;
+    }
+    const allowedStates = role === 'technician' ? ['prochainement', 'en cours'] : ['prochainement'];
+    if (!allowedStates.includes(intervention.state)) {
+        const err = new Error('Cette intervention ne peut plus être annulée');
+        err.status = 409;
+        throw err;
+    }
+    const cancelled = await interventionRepository.cancel(interventionId);
+    if (role === 'technician') {
+        getIO()?.to(`intervention:${interventionId}`).emit('message:new', {
+            user_id: userId,
+            intervention_id: interventionId,
+            content: 'Le technicien a annulé cette intervention.',
+            photo_url: null,
+            created_at: new Date().toISOString(),
+        });
+    }
+    return cancelled;
+}
+
+export async function startIntervention(technicianId, interventionId) {
+    const intervention = await interventionRepository.findById(interventionId);
+    if (!intervention || intervention.technician_id !== technicianId) {
         const err = new Error('Intervention introuvable');
         err.status = 404;
         throw err;
     }
     if (intervention.state !== 'prochainement') {
-        const err = new Error('Cette intervention ne peut plus être annulée');
+        const err = new Error("Cette intervention ne peut pas être démarrée");
         err.status = 409;
         throw err;
     }
-    return interventionRepository.cancel(interventionId);
+    return interventionRepository.updateState(interventionId, 'en cours');
 }
+
+export async function completeIntervention(technicianId, interventionId, { total_price, is_paid }) {
+    const intervention = await interventionRepository.findById(interventionId);
+    if (!intervention || intervention.technician_id !== technicianId) {
+        const err = new Error('Intervention introuvable');
+        err.status = 404;
+        throw err;
+    }
+    if (intervention.state !== 'en cours') {
+        const err = new Error("Cette intervention ne peut pas être clôturée");
+        err.status = 409;
+        throw err;
+    }
+    return interventionRepository.complete(interventionId, { totalPrice: total_price, isPaid: is_paid });
+}
+
 
 export async function getMyInterventions(clientId, { sort, limit, offset }) {
     const rows = await interventionRepository.findByClientId(clientId, { sort, limit, offset });
     const hasMore = rows.length > limit;
     return { interventions: rows.slice(0, limit), hasMore };
+}
+
+export async function getTodayForTechnician(technicianId) {
+    return interventionRepository.findByTechnicianToday(technicianId);
+}
+
+export async function getHistoryForTechnician(technicianId, { date, zone_id, client_id, sort, limit, offset }) {
+    const rows = await interventionRepository.findByTechnicianId(technicianId, { date, zoneId: zone_id, clientId: client_id, sort, limit, offset });
+    const hasMore = rows.length > limit;
+    return { interventions: rows.slice(0, limit), hasMore };
+}
+
+export async function getInterventionDetail(userId, role, interventionId) {
+    const allowed = await canAccessIntervention(userId, role, interventionId);
+    if (!allowed) {
+        const err = new Error('Intervention introuvable');
+        err.status = 404;
+        throw err;
+    }
+    const [detail, products, photos] = await Promise.all([
+        interventionRepository.findDetailById(interventionId),
+        interventionRepository.findProductsByInterventionId(interventionId),
+        interventionRepository.findPhotosByInterventionId(interventionId),
+    ]);
+    return { ...detail, products, photos };
 }
 
 export async function canAccessIntervention(userId, role, interventionId) {

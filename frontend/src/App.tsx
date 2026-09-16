@@ -18,6 +18,9 @@ import { AdminZones } from './pages/AdminZones'
 import { Historique } from './pages/Historique'
 import { TechnicianLayout } from './components/TechnicianLayout';
 import { TechnicianProfil } from './pages/TechnicianProfil'
+import { AgendaJour } from './pages/AgendaJour'
+import { InterventionDetail } from './pages/InterventionDetail'
+import { HistoriqueTechnicien } from './pages/HistoriqueTechnicien'
 
 function App() {
   return (
@@ -49,9 +52,13 @@ function App() {
       <Route path="/signup" element={<Signup />} />
       <Route element={<ProtectedRoute roles={['technician']} />}>
         <Route element={<TechnicianLayout />}>
+          <Route path="/technician/agenda" element={<AgendaJour />} />
           <Route path="/technician/profil" element={<TechnicianProfil />} />
+          <Route path="/technician/historique" element={<HistoriqueTechnicien />} />
+          <Route path="/technician/intervention/:id" element={<InterventionDetail />} />
         </Route>
       </Route>
+
     </Routes >
   )
 }
