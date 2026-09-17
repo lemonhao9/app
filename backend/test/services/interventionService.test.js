@@ -237,7 +237,7 @@ describe('interventionService.addPhotos', () => {
     });
 
     it("ajoute chaque fichier via interventionRepository.addPhoto pour le technicien assigné", async () => {
-        interventionRepository.findById.mockResolvedValue({ client_id: 1, technician_id: 9 });
+        interventionRepository.findById.mockResolvedValue({ client_id: 1, technician_id: 9, state: 'en cours' });
         interventionRepository.addPhoto
             .mockResolvedValueOnce({ photo_id: 1, url: '/uploads/a.jpg' })
             .mockResolvedValueOnce({ photo_id: 2, url: '/uploads/b.jpg' });
@@ -246,6 +246,14 @@ describe('interventionService.addPhotos', () => {
 
         expect(interventionRepository.addPhoto).toHaveBeenCalledTimes(2);
         expect(interventionRepository.addPhoto).toHaveBeenNthCalledWith(1, 42, '/uploads/a.jpg');
+        expect(interventionRepository.addPhoto).toHaveBeenNthCalledWith(2, 42, '/uploads/b.jpg');
         expect(result).toEqual([{ photo_id: 1, url: '/uploads/a.jpg' }, { photo_id: 2, url: '/uploads/b.jpg' }]);
+    });
+
+    it("refuse l'ajout de photo si l'intervention n'est plus en cours", async () => {
+        interventionRepository.findById.mockResolvedValue({ client_id: 1, technician_id: 9, state: 'terminée' });
+
+        await expect(interventionService.addPhotos(9, 'technician', 42, [])).rejects.toMatchObject({ status: 409 });
+        expect(interventionRepository.addPhoto).not.toHaveBeenCalled();
     });
 });

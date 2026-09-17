@@ -12,6 +12,7 @@ export async function findByZoneFeeDay(zoneId, feeId, day) {
                 AND (s.day + s.start_at) > NOW() + INTERVAL '2 hours'
             ) AS available
         FROM slot s
+        JOIN "user" t ON t.user_id = s.technician_id AND t.is_active = TRUE
         WHERE s.zone_id = $1 AND s.fee_id = $2 AND s.day = $3
         ORDER BY s.start_at`,
         [zoneId, feeId, day]
@@ -24,18 +25,21 @@ export async function findBookableInfo(slotId) {
         `SELECT
             s.slot_id, s.zone_id, s.fee_id, s.technician_id, s.day, s.start_at,
             (
-                NOT EXISTS (
+                t.is_active
+                AND NOT EXISTS (
                     SELECT 1 FROM intervention i
                     WHERE i.slot_id = s.slot_id AND i.state != 'annulée'
                 )
                 AND (s.day + s.start_at) > NOW() + INTERVAL '2 hours'
             ) AS bookable
         FROM slot s
+        JOIN "user" t ON t.user_id = s.technician_id
         WHERE s.slot_id = $1`,
         [slotId]
     );
     return result.rows[0] ?? null;
 }
+
 
 export async function findById(slotId) {
     const result = await query(`SELECT * FROM slot WHERE slot_id = $1`, [slotId]);

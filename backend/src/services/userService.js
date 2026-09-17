@@ -2,6 +2,7 @@ import bcrypt from 'bcryptjs';
 import * as userRepository from '../repositories/userRepository.js';
 import { deletePhotoFile } from '../utils/fileStorage.js';
 import { toSafeUser } from './authServices.js'
+import { getClient } from '../utils/db.js'
 
 const SALT_ROUNDS = 12;
 
@@ -23,8 +24,18 @@ export async function deleteAccount(userId) {
         err.status = 404;
         throw err;
     }
-    await userRepository.anonymize(userId);
-    await userRepository.deleteAddresses(userId);
+    const client = await getClient();
+    try {
+        await client.query('BEGIN');
+        await userRepository.anonymize(userId, client);
+        await userRepository.deleteAddresses(userId, client);
+        await client.query('COMMIT');
+    } catch (err) {
+        await client.query('ROLLBACK');
+        throw err;
+    } finally {
+        client.release();
+    }
     await deletePhotoFile(user.picture);
 }
 

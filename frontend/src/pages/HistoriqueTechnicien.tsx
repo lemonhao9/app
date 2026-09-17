@@ -32,6 +32,12 @@ function formatDay(day: string): string {
     return new Date(day).toLocaleDateString('fr-FR');
 }
 
+function yesterdayISO(): string {
+    const d = new Date();
+    d.setDate(d.getDate() - 1);
+    return d.toISOString().slice(0, 10);
+}
+
 const PAGE_SIZE = 6;
 
 export function HistoriqueTechnicien() {
@@ -63,8 +69,7 @@ export function HistoriqueTechnicien() {
                 setZoneOptions(Array.from(zones, ([zone_id, zone_name]) => ({ zone_id, zone_name })));
                 setClientOptions(Array.from(clients, ([client_id, client_name]) => ({ client_id, client_name })));
             })
-            .catch(() => { /* menus déroulants simplement vides si ça échoue */ });
-        // eslint-disable-next-line react-hooks/exhaustive-deps
+            .catch(() => { });
     }, []);
 
     function buildQuery(currentOffset: number) {
@@ -98,6 +103,8 @@ export function HistoriqueTechnicien() {
         // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [date, zoneId, clientId, sort]);
 
+    const maxDate = yesterdayISO();
+
     return (
         <div className="flex flex-col gap-4">
             <h1 className="text-2xl font-black uppercase tracking-wide">Historique des interventions</h1>
@@ -106,6 +113,7 @@ export function HistoriqueTechnicien() {
                 <input
                     type="date"
                     value={date}
+                    max={maxDate}
                     onChange={(e) => setDate(e.target.value)}
                     className="border border-gray-300 rounded-md px-3 py-2 text-sm"
                 />

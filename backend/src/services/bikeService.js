@@ -36,7 +36,12 @@ export async function deleteBike(userId, bikeId) {
         err.status = 404;
         throw err;
     }
+    const interventionCount = await bikeRepository.countInterventions(bikeId);
+    if (interventionCount > 0) {
+        const err = new Error('Vélo encore référencé par des interventions, suppression refusée');
+        err.status = 409;
+        throw err;
+    }
     await bikeRepository.remove(bikeId);
     deletePhotoFile(bike.photo);
 }
-

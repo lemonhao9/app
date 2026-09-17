@@ -81,10 +81,25 @@ export async function createIntervention(clientId, { bike_id, slot_id, address_i
 }
 
 export async function addPhotos(userId, role, interventionId, files) {
-    const allowed = await canAccessIntervention(userId, role, interventionId);
-    if (!allowed) {
+    const intervention = await interventionRepository.findById(interventionId);
+    if (!intervention) {
         const err = new Error('Intervention introuvable');
         err.status = 404;
+        throw err;
+    }
+    if (role === 'client' && intervention.client_id !== userId) {
+        const err = new Error('Intervention introuvable');
+        err.status = 404;
+        throw err;
+    }
+    if (role === 'technician' && intervention.technician_id !== userId) {
+        const err = new Error('Intervention introuvable');
+        err.status = 404;
+        throw err;
+    }
+    if (intervention.state !== 'en cours') {
+        const err = new Error("Cette intervention n'est plus en cours, ajout de photo refusé");
+        err.status = 409;
         throw err;
     }
     const photos = [];
@@ -93,7 +108,6 @@ export async function addPhotos(userId, role, interventionId, files) {
     }
     return photos;
 }
-
 
 export async function cancelIntervention(userId, role, interventionId) {
     const intervention = await interventionRepository.findById(interventionId);

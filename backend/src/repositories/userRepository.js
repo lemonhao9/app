@@ -29,8 +29,8 @@ export async function update(userId, {name, phone, picture, email, passwordHash}
 }
 
 
-export async function anonymize(userId) {
-    const results = await query(
+export async function anonymize(userId, runner = pool) {
+    const results = await runner.query(
         `UPDATE "user"
         SET email = $2,
             name = 'Utilisateur supprimé',
@@ -44,9 +44,15 @@ export async function anonymize(userId) {
     return results.rows[0] ?? null;
 }
 
-export async function deleteAddresses(userId) {
-    await query('DELETE FROM address WHERE user_id = $1', [userId]);
+export async function deleteAddresses(userId, runner = pool) {
+    await runner.query(
+        `DELETE FROM address
+         WHERE user_id = $1
+           AND address_id NOT IN (SELECT address_id FROM intervention WHERE address_id IS NOT NULL)`,
+        [userId]
+    );
 }
+
 
 export async function findAll({role} = {}, runner = pool) {
     const results = role
