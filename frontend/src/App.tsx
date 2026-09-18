@@ -21,6 +21,7 @@ import { TechnicianProfil } from './pages/TechnicianProfil'
 import { AgendaJour } from './pages/AgendaJour'
 import { InterventionDetail } from './pages/InterventionDetail'
 import { HistoriqueTechnicien } from './pages/HistoriqueTechnicien'
+import { AdminInterventionDetail } from './pages/AdminInterventionDetail'
 
 function App() {
   return (
@@ -38,6 +39,7 @@ function App() {
         <Route element={<ProtectedRoute roles={['admin']} />}>
           <Route element={<AdminLayout />}>
             <Route path="/admin/zones" element={<AdminZones />} />
+            <Route path="/admin/interventions/:id" element={<AdminInterventionDetail />} />
           </Route>
         </Route>
         <Route element={<ClientLayout />}>

@@ -120,7 +120,8 @@ export async function findDetailById(interventionId, runner = pool) {
             s.day, s.start_at, s.ended_at,
             z.zone_id, z.name AS zone_name,
             a.address_name, a.city, a.postal_code, a.latitude, a.longitude,
-            c.name AS client_name, c.phone AS client_phone, c.email AS client_email
+            c.name AS client_name, c.phone AS client_phone, c.email AS client_email,
+            t.name AS technician_name, t.phone AS technician_phone, t.email AS technician_email
         FROM intervention i
         LEFT JOIN bike b ON b.bike_id = i.bike_id
         JOIN slot s ON s.slot_id = i.slot_id
@@ -128,11 +129,13 @@ export async function findDetailById(interventionId, runner = pool) {
         JOIN fee f ON f.fee_id = s.fee_id
         JOIN address a ON a.address_id = i.address_id
         JOIN "user" c ON c.user_id = i.client_id
+        LEFT JOIN "user" t ON t.user_id = i.technician_id
         WHERE i.intervention_id = $1`,
         [interventionId]
     );
     return result.rows[0] ?? null;
 }
+
 
 
 export async function findProductsByInterventionId(interventionId, runner = pool) {
@@ -194,6 +197,65 @@ export async function findByTechnicianId(technicianId, { date, zoneId, clientId,
         JOIN address a ON a.address_id = i.address_id
         JOIN "user" c ON c.user_id = i.client_id
         WHERE ${conditions.join(' AND ')}
+        ORDER BY s.day ${dir}, s.start_at ${dir}
+        LIMIT $${params.length - 1} OFFSET $${params.length}`,
+        params
+    );
+    return result.rows;
+}
+
+
+export async function findAll({ date, startAt, zoneId, clientId, bikeId, feeId, sort, limit, offset }, runner = pool) {
+    const dir = sort === 'asc' ? 'ASC' : 'DESC';
+    const conditions = [];
+    const params = [];
+
+    if (date) {
+        params.push(date);
+        conditions.push(`s.day = $${params.length}`);
+    }
+    if (startAt) {
+        params.push(startAt);
+        conditions.push(`s.start_at = $${params.length}`);
+    }
+    if (zoneId) {
+        params.push(zoneId);
+        conditions.push(`z.zone_id = $${params.length}`);
+    }
+    if (clientId) {
+        params.push(clientId);
+        conditions.push(`i.client_id = $${params.length}`);
+    }
+    if (bikeId) {
+        params.push(bikeId);
+        conditions.push(`i.bike_id = $${params.length}`);
+    }
+    if (feeId) {
+        params.push(feeId);
+        conditions.push(`s.fee_id = $${params.length}`);
+    }
+
+    const where = conditions.length ? `WHERE ${conditions.join(' AND ')}` : '';
+    params.push(limit + 1, offset);
+    const result = await runner.query(
+        `SELECT
+            i.intervention_id, i.state, i.total_price, i.is_paid,
+            b.brand AS bike_brand, b.model AS bike_model, b.bike_type,
+            f.name_fee, f.duration,
+            s.day, s.start_at, s.ended_at,
+            z.zone_id, z.name AS zone_name,
+            c.user_id AS client_id, c.name AS client_name,
+            t.user_id AS technician_id, t.name AS technician_name,
+            a.address_name, a.city
+        FROM intervention i
+        LEFT JOIN bike b ON b.bike_id = i.bike_id
+        JOIN slot s ON s.slot_id = i.slot_id
+        JOIN zone z ON z.zone_id = s.zone_id
+        JOIN fee f ON f.fee_id = s.fee_id
+        JOIN address a ON a.address_id = i.address_id
+        JOIN "user" c ON c.user_id = i.client_id
+        LEFT JOIN "user" t ON t.user_id = i.technician_id
+        ${where}
         ORDER BY s.day ${dir}, s.start_at ${dir}
         LIMIT $${params.length - 1} OFFSET $${params.length}`,
         params

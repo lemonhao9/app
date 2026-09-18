@@ -76,3 +76,15 @@ export const technicianHistoryQuerySchema = z.object({
     limit: z.coerce.number().int().positive().max(50).default(6),
     offset: z.coerce.number().int().nonnegative().default(0),
 });
+
+export const adminInterventionsQuerySchema = z.object({
+    date: z.string().regex(/^\d{4}-\d{2}-\d{2}$/).optional(),
+    start_at: z.string().regex(/^\d{2}:\d{2}(:\d{2})?$/).optional(),
+    zone_id: z.coerce.number().int().positive().optional(),
+    client_id: z.coerce.number().int().positive().optional(),
+    bike_id: z.coerce.number().int().positive().optional(),
+    fee_id: z.coerce.number().int().positive().optional(),
+    sort: z.enum(['asc', 'desc']).default('desc'),
+    limit: z.coerce.number().int().positive().max(50).default(6),
+    offset: z.coerce.number().int().nonnegative().default(0),
+});

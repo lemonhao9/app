@@ -3,7 +3,10 @@ import { NavBar } from './ui/NavBar';
 
 export function AdminLayout() {
     const location = useLocation();
-    const links = [{ to: '/admin/zones', label: 'Profil'}];
+    const links = [
+        { to: '/admin/zones', label: 'Zones' },
+        { to: '/admin/interventions', label: 'Interventions' },
+    ];
 
     return (
         <div className="min-h-screen bg-gray-50">

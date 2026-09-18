@@ -192,6 +192,14 @@ export async function getHistoryForTechnician(technicianId, { date, zone_id, cli
     return { interventions: rows.slice(0, limit), hasMore };
 }
 
+
+export async function getAllInterventions({ date, start_at, zone_id, client_id, bike_id, fee_id, sort, limit, offset }) {
+    const rows = await interventionRepository.findAll({ date, startAt: start_at, zoneId: zone_id, clientId: client_id, bikeId: bike_id, feeId: fee_id, sort, limit, offset });
+    const hasMore = rows.length > limit;
+    return { interventions: rows.slice(0, limit), hasMore };
+}
+
+
 export async function getInterventionDetail(userId, role, interventionId) {
     const allowed = await canAccessIntervention(userId, role, interventionId);
     if (!allowed) {
