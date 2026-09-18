@@ -88,3 +88,7 @@ export const adminInterventionsQuerySchema = z.object({
     limit: z.coerce.number().int().positive().max(50).default(6),
     offset: z.coerce.number().int().nonnegative().default(0),
 });
+
+export const reassignInterventionSchema = z.object({
+    slot_id: z.coerce.number().int().positive(),
+});

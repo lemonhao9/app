@@ -116,8 +116,7 @@ export async function findDetailById(interventionId, runner = pool) {
         `SELECT
             i.intervention_id, i.state, i.total_price, i.is_paid,
             b.brand AS bike_brand, b.model AS bike_model, b.bike_type, b.year AS bike_year, b.is_electric,
-            f.name_fee, f.price_fee, f.duration,
-            s.day, s.start_at, s.ended_at,
+            f.fee_id, f.name_fee, f.price_fee, f.duration,            s.day, s.start_at, s.ended_at,
             z.zone_id, z.name AS zone_name,
             a.address_name, a.city, a.postal_code, a.latitude, a.longitude,
             c.name AS client_name, c.phone AS client_phone, c.email AS client_email,
@@ -238,15 +237,16 @@ export async function findAll({ date, startAt, zoneId, clientId, bikeId, feeId, 
     const where = conditions.length ? `WHERE ${conditions.join(' AND ')}` : '';
     params.push(limit + 1, offset);
     const result = await runner.query(
-        `SELECT
-            i.intervention_id, i.state, i.total_price, i.is_paid,
-            b.brand AS bike_brand, b.model AS bike_model, b.bike_type,
-            f.name_fee, f.duration,
-            s.day, s.start_at, s.ended_at,
-            z.zone_id, z.name AS zone_name,
-            c.user_id AS client_id, c.name AS client_name,
-            t.user_id AS technician_id, t.name AS technician_name,
-            a.address_name, a.city
+        `         SELECT
+             i.intervention_id, i.state, i.total_price, i.is_paid,
+            b.bike_id, b.brand AS bike_brand, b.model AS bike_model, b.bike_type,
+            f.fee_id, f.name_fee, f.duration,
+             s.day, s.start_at, s.ended_at,
+             z.zone_id, z.name AS zone_name,
+             c.user_id AS client_id, c.name AS client_name,
+             t.user_id AS technician_id, t.name AS technician_name,
+             a.address_name, a.city
+
         FROM intervention i
         LEFT JOIN bike b ON b.bike_id = i.bike_id
         JOIN slot s ON s.slot_id = i.slot_id
@@ -261,4 +261,13 @@ export async function findAll({ date, startAt, zoneId, clientId, bikeId, feeId, 
         params
     );
     return result.rows;
+}
+
+export async function reassign(interventionId, { slotId, technicianId }, runner = pool) {
+    const result = await runner.query(
+        `UPDATE intervention SET slot_id = $2, technician_id = $3 WHERE intervention_id = $1
+         RETURNING intervention_id, state, total_price, is_paid, bike_id, slot_id, technician_id, client_id, address_id`,
+        [interventionId, slotId, technicianId]
+    );
+    return result.rows[0];
 }

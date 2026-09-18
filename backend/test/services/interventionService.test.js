@@ -2,8 +2,12 @@ import { describe, it, expect, vi, beforeEach } from 'vitest';
 import * as interventionRepository from '../../src/repositories/interventionRepository.js';
 import * as interventionService from '../../src/services/interventionService.js';
 import * as socketUtil from '../../src/utils/socket.js';
+import * as slotRepository from '../../src/repositories/slotRepository.js';
+import * as addressRepository from '../../src/repositories/addressRepository.js';
 
 vi.mock('../../src/repositories/interventionRepository.js');
+vi.mock('../../src/repositories/slotRepository.js');
+vi.mock('../../src/repositories/addressRepository.js');
 vi.mock('../../src/utils/socket.js');
 
 beforeEach(() => {
@@ -79,6 +83,74 @@ describe('interventionService.cancelIntervention', () => {
         await interventionService.cancelIntervention(1, 'client', 1);
 
         expect(socketUtil.getIO).not.toHaveBeenCalled();
+    });
+
+        it("autorise l'admin à annuler une intervention 'en cours' sans vérification de propriété", async () => {
+        interventionRepository.findById.mockResolvedValue({ intervention_id: 1, client_id: 1, technician_id: 9, state: 'en cours' });
+        interventionRepository.cancel.mockResolvedValue({ intervention_id: 1, state: 'annulée' });
+        socketUtil.getIO.mockReturnValue(undefined);
+
+        const result = await interventionService.cancelIntervention(99, 'admin', 1);
+
+        expect(result).toEqual({ intervention_id: 1, state: 'annulée' });
+    });
+
+    it("lève une 409 si l'admin tente d'annuler une intervention déjà 'terminée'", async () => {
+        interventionRepository.findById.mockResolvedValue({ intervention_id: 1, client_id: 1, technician_id: 9, state: 'terminée' });
+
+        await expect(interventionService.cancelIntervention(99, 'admin', 1)).rejects.toMatchObject({ status: 409 });
+    });
+
+    it("notifie le client via Socket.io avec un message distinct quand l'admin annule", async () => {
+        interventionRepository.findById.mockResolvedValue({ intervention_id: 1, client_id: 1, technician_id: 9, state: 'prochainement' });
+        interventionRepository.cancel.mockResolvedValue({ intervention_id: 1, state: 'annulée' });
+        const emit = vi.fn();
+        socketUtil.getIO.mockReturnValue({ to: vi.fn().mockReturnValue({ emit }) });
+
+        await interventionService.cancelIntervention(99, 'admin', 1);
+
+        expect(emit).toHaveBeenCalledWith('message:new', expect.objectContaining({
+            content: "Cette intervention a été annulée par l'administration.",
+        }));
+    });
+
+});
+
+describe('interventionService.reassignIntervention', () => {
+    it("lève une 404 si l'intervention est introuvable", async () => {
+        interventionRepository.findById.mockResolvedValue(null);
+
+        await expect(interventionService.reassignIntervention(1, { slot_id: 5 })).rejects.toMatchObject({ status: 404 });
+    });
+
+    it("lève une 409 si l'intervention n'est plus 'prochainement' ou 'en cours'", async () => {
+        interventionRepository.findById.mockResolvedValue({ intervention_id: 1, address_id: 3, state: 'terminée' });
+
+        await expect(interventionService.reassignIntervention(1, { slot_id: 5 })).rejects.toMatchObject({ status: 409 });
+        expect(slotRepository.findBookableInfo).not.toHaveBeenCalled();
+    });
+
+    it("lève une 404 si le nouveau créneau est introuvable", async () => {
+        interventionRepository.findById.mockResolvedValue({ intervention_id: 1, address_id: 3, state: 'prochainement' });
+        slotRepository.findBookableInfo.mockResolvedValue(null);
+
+        await expect(interventionService.reassignIntervention(1, { slot_id: 5 })).rejects.toMatchObject({ status: 404 });
+    });
+
+    it("lève une 409 si le nouveau créneau n'est plus disponible", async () => {
+        interventionRepository.findById.mockResolvedValue({ intervention_id: 1, address_id: 3, state: 'prochainement' });
+        slotRepository.findBookableInfo.mockResolvedValue({ slot_id: 5, zone_id: 2, technician_id: 7, bookable: false });
+
+        await expect(interventionService.reassignIntervention(1, { slot_id: 5 })).rejects.toMatchObject({ status: 409 });
+        expect(addressRepository.findById).not.toHaveBeenCalled();
+    });
+
+    it("lève une 409 si la zone du nouveau créneau ne correspond pas à l'adresse du client", async () => {
+        interventionRepository.findById.mockResolvedValue({ intervention_id: 1, address_id: 3, state: 'prochainement' });
+        slotRepository.findBookableInfo.mockResolvedValue({ slot_id: 5, zone_id: 2, technician_id: 7, bookable: true });
+        addressRepository.findById.mockResolvedValue({ address_id: 3, zone_id: 4 });
+
+        await expect(interventionService.reassignIntervention(1, { slot_id: 5 })).rejects.toMatchObject({ status: 409 });
     });
 });
 

@@ -22,6 +22,7 @@ import { AgendaJour } from './pages/AgendaJour'
 import { InterventionDetail } from './pages/InterventionDetail'
 import { HistoriqueTechnicien } from './pages/HistoriqueTechnicien'
 import { AdminInterventionDetail } from './pages/AdminInterventionDetail'
+import { AdminInterventions } from './pages/AdminInterventions'
 
 function App() {
   return (
@@ -40,6 +41,7 @@ function App() {
           <Route element={<AdminLayout />}>
             <Route path="/admin/zones" element={<AdminZones />} />
             <Route path="/admin/interventions/:id" element={<AdminInterventionDetail />} />
+            <Route path="/admin/interventions" element={<AdminInterventions />} />
           </Route>
         </Route>
         <Route element={<ClientLayout />}>

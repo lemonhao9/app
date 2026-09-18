@@ -126,24 +126,77 @@ export async function cancelIntervention(userId, role, interventionId) {
         err.status = 404;
         throw err;
     }
-    const allowedStates = role === 'technician' ? ['prochainement', 'en cours'] : ['prochainement'];
-    if (!allowedStates.includes(intervention.state)) {
+    const allowedStates = ['technician', 'admin'].includes(role) ? ['prochainement', 'en cours'] : ['prochainement']; if (!allowedStates.includes(intervention.state)) {
         const err = new Error('Cette intervention ne peut plus être annulée');
         err.status = 409;
         throw err;
     }
     const cancelled = await interventionRepository.cancel(interventionId);
-    if (role === 'technician') {
+    if (['technician', 'admin'].includes(role)) {
         getIO()?.to(`intervention:${interventionId}`).emit('message:new', {
             user_id: userId,
             intervention_id: interventionId,
-            content: 'Le technicien a annulé cette intervention.',
+            content: role === 'admin' ? "Cette intervention a été annulée par l'administration." : 'Le technicien a annulé cette intervention.',
             photo_url: null,
             created_at: new Date().toISOString(),
         });
     }
     return cancelled;
 }
+
+export async function reassignIntervention(interventionId, { slot_id }) {
+    const intervention = await interventionRepository.findById(interventionId);
+    if (!intervention) {
+        const err = new Error('Intervention introuvable');
+        err.status = 404;
+        throw err;
+    }
+    const allowedStates = ['prochainement', 'en cours'];
+    if (!allowedStates.includes(intervention.state)) {
+        const err = new Error('Cette intervention ne peut plus être réassignée');
+        err.status = 409;
+        throw err;
+    }
+
+    const slot = await slotRepository.findBookableInfo(slot_id);
+    if (!slot) {
+        const err = new Error('Créneau introuvable');
+        err.status = 404;
+        throw err;
+    }
+    if (!slot.bookable) {
+        const err = new Error("Ce créneau n'est plus disponible (déjà réservé, ou à moins de 2h)");
+        err.status = 409;
+        throw err;
+    }
+
+    const address = await addressRepository.findById(intervention.address_id);
+    if (address.zone_id !== slot.zone_id) {
+        const err = new Error("Le nouveau créneau ne correspond pas à la zone de l'adresse du client");
+        err.status = 409;
+        throw err;
+    }
+
+    const client = await getClient();
+    let updated;
+    try {
+        await client.query('BEGIN');
+        updated = await interventionRepository.reassign(interventionId, { slotId: slot_id, technicianId: slot.technician_id }, client);
+        await client.query('COMMIT');
+    } catch (err) {
+        await client.query('ROLLBACK');
+        if (err.code === '23505') {
+            const conflict = new Error("Ce créneau vient d'être réservé par quelqu'un d'autre, merci d'en choisir un autre.");
+            conflict.status = 409;
+            throw conflict;
+        }
+        throw err;
+    } finally {
+        client.release();
+    }
+    return updated;
+}
+
 
 export async function startIntervention(technicianId, interventionId) {
     const intervention = await interventionRepository.findById(interventionId);

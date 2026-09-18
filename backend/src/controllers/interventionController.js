@@ -1,6 +1,6 @@
 import * as interventionService from '../services/interventionService.js';
 import { z } from 'zod';
-import { createInterventionSchema, completeInterventionSchema, technicianHistoryQuerySchema, adminInterventionsQuerySchema } from '../utils/schemas.js';
+import { createInterventionSchema, completeInterventionSchema, technicianHistoryQuerySchema, adminInterventionsQuerySchema, reassignInterventionSchema } from '../utils/schemas.js';
 
 export async function createIntervention(req, res, next) {
     const parsed = createInterventionSchema.safeParse(req.body);
@@ -113,6 +113,19 @@ export async function getAllInterventions(req, res, next) {
     try {
         const result = await interventionService.getAllInterventions(parsed.data);
         res.json(result);
+    } catch (err) {
+        next(err);
+    }
+}
+
+export async function reassignIntervention(req, res, next) {
+    const parsed = reassignInterventionSchema.safeParse(req.body);
+    if (!parsed.success) {
+        return res.status(400).json({ error: parsed.error.flatten() });
+    }
+    try {
+        const intervention = await interventionService.reassignIntervention(Number(req.params.id), parsed.data);
+        res.json({ intervention });
     } catch (err) {
         next(err);
     }

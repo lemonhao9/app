@@ -15,6 +15,7 @@ router.get('/', authenticate, authorize('admin'), interventionController.getAllI
 router.get('/:id', authenticate, authorize('technician', 'client', 'admin'), interventionController.getInterventionDetail);    
 router.patch('/:id/start', authenticate, authorize('technician'), interventionController.startIntervention);
 router.patch('/:id/complete', authenticate, authorize('technician'), interventionController.completeIntervention);
-router.patch('/:id/cancel', authenticate, authorize('client', 'technician'), interventionController.cancelIntervention);
+router.patch('/:id/reassign', authenticate, authorize('admin'), interventionController.reassignIntervention);
+router.patch('/:id/cancel', authenticate, authorize('client', 'technician', 'admin'), interventionController.cancelIntervention);
 
 export default router;
