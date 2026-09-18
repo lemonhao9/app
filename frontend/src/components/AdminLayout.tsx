@@ -6,6 +6,8 @@ export function AdminLayout() {
     const links = [
         { to: '/admin/zones', label: 'Zones' },
         { to: '/admin/interventions', label: 'Interventions' },
+        { to: '/admin/forfaits', label: 'Forfaits' },
+        { to: '/admin/produits', label: 'Produits' },
     ];
 
     return (

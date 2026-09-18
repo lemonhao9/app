@@ -23,6 +23,8 @@ import { InterventionDetail } from './pages/InterventionDetail'
 import { HistoriqueTechnicien } from './pages/HistoriqueTechnicien'
 import { AdminInterventionDetail } from './pages/AdminInterventionDetail'
 import { AdminInterventions } from './pages/AdminInterventions'
+import { AdminForfaits } from './pages/AdminForfaits'
+import { AdminProduits } from './pages/AdminProduits'
 
 function App() {
   return (
@@ -42,6 +44,8 @@ function App() {
             <Route path="/admin/zones" element={<AdminZones />} />
             <Route path="/admin/interventions/:id" element={<AdminInterventionDetail />} />
             <Route path="/admin/interventions" element={<AdminInterventions />} />
+            <Route path="/admin/forfaits" element={<AdminForfaits />} />
+            <Route path="/admin/produits" element={<AdminProduits />} />
           </Route>
         </Route>
         <Route element={<ClientLayout />}>

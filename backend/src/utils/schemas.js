@@ -92,3 +92,20 @@ export const adminInterventionsQuerySchema = z.object({
 export const reassignInterventionSchema = z.object({
     slot_id: z.coerce.number().int().positive(),
 });
+
+export const feeSchema = z.object({
+    name_fee: z.string().min(1).max(255),
+    price_fee: z.coerce.number().positive(),
+    duration: z.coerce.number().int().positive(),
+    description_forfait: z.string().max(2000).optional(),
+    optional_title: z.string().max(255).optional(),
+    optional_price: z.coerce.number().positive().optional(),
+    optional_desc: z.string().max(2000).optional(),
+});
+
+export const productSchema = z.object({
+    name: z.string().min(1).max(255),
+    category: z.string().max(255).optional(),
+    description: z.string().max(2000).optional(),
+    price: z.coerce.number().positive(),
+});
