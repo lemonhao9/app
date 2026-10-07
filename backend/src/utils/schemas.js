@@ -28,7 +28,14 @@ export const bikeSchema = z.object({
 export const userUpdateSchema = z.object({
     name: z.string().min(1).max(255, "Le nom ne peut dépasser 255 caractères").optional(),
     phone: z.string().trim().min(1).max(20).optional(),
+    email: z.string().trim().email().optional(),
+    currentPassword: z.string().min(1).optional(),
+    newPassword: z.string().min(8, "Le mot de passe doit contenir au moins 8 caractères").optional(),
+}).refine(data => !data.newPassword || !!data.currentPassword, {
+    message: "L'ancien mot de passe est requis pour changer de mot de passe",
+    path: ['currentPassword'],
 });
+
 
 export const zoneSchema = z.object({
     name: z.string().min(1).max(255),
@@ -54,4 +61,51 @@ export const createInterventionSchema = z.object({
     slot_id: z.coerce.number().int().positive(),
     address_id: z.coerce.number().int().positive(),
     product_ids: z.array(z.coerce.number().int().positive()).default([]),
+});
+
+export const completeInterventionSchema = z.object({
+    total_price: z.coerce.number().positive(),
+    is_paid: z.boolean(),
+});
+
+export const technicianHistoryQuerySchema = z.object({
+    date: z.string().regex(/^\d{4}-\d{2}-\d{2}$/).optional(),
+    zone_id: z.coerce.number().int().positive().optional(),
+    client_id: z.coerce.number().int().positive().optional(),
+    sort: z.enum(['asc', 'desc']).default('desc'),
+    limit: z.coerce.number().int().positive().max(50).default(6),
+    offset: z.coerce.number().int().nonnegative().default(0),
+});
+
+export const adminInterventionsQuerySchema = z.object({
+    date: z.string().regex(/^\d{4}-\d{2}-\d{2}$/).optional(),
+    start_at: z.string().regex(/^\d{2}:\d{2}(:\d{2})?$/).optional(),
+    zone_id: z.coerce.number().int().positive().optional(),
+    client_id: z.coerce.number().int().positive().optional(),
+    bike_id: z.coerce.number().int().positive().optional(),
+    fee_id: z.coerce.number().int().positive().optional(),
+    sort: z.enum(['asc', 'desc']).default('desc'),
+    limit: z.coerce.number().int().positive().max(50).default(6),
+    offset: z.coerce.number().int().nonnegative().default(0),
+});
+
+export const reassignInterventionSchema = z.object({
+    slot_id: z.coerce.number().int().positive(),
+});
+
+export const feeSchema = z.object({
+    name_fee: z.string().min(1).max(255),
+    price_fee: z.coerce.number().positive(),
+    duration: z.coerce.number().int().positive(),
+    description_forfait: z.string().max(2000).optional(),
+    optional_title: z.string().max(255).optional(),
+    optional_price: z.coerce.number().positive().optional(),
+    optional_desc: z.string().max(2000).optional(),
+});
+
+export const productSchema = z.object({
+    name: z.string().min(1).max(255),
+    category: z.string().max(255).optional(),
+    description: z.string().max(2000).optional(),
+    price: z.coerce.number().positive(),
 });

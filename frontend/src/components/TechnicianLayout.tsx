@@ -1,14 +1,13 @@
 import { Outlet, Link, useLocation } from 'react-router-dom';
 import { NavBar } from './ui/NavBar';
 
-export function AdminLayout() {
+export function TechnicianLayout() {
     const location = useLocation();
     const links = [
-        { to: '/admin/zones', label: 'Zones' },
-        { to: '/admin/interventions', label: 'Interventions' },
-        { to: '/admin/forfaits', label: 'Forfaits' },
-        { to: '/admin/produits', label: 'Produits' },
-    ];
+    { to: '/technician/agenda', label: 'Agenda du jour' },
+    { to: '/technician/historique', label: 'Historique' },
+    { to: '/technician/profil', label: 'Mon Profil' },
+];
 
     return (
         <div className="min-h-screen bg-gray-50">

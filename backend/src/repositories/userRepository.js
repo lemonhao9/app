@@ -20,16 +20,17 @@ export async function create({email, passwordHash, name, phone = null, role = 'c
     return results.rows[0];
 }
 
-export async function update(userId, {name, phone, picture}, runner = pool) {
+export async function update(userId, {name, phone, picture, email, passwordHash}, runner = pool) {
     const results = await runner.query(
-        `UPDATE "user" SET name = $1, phone = $2, picture = $3 WHERE user_id = $4 RETURNING user_id, email, name, phone, role, picture, is_active`,
-        [name, phone ?? null, picture, userId]
+        `UPDATE "user" SET name = $1, phone = $2, picture = $3, email = $4, password_hash = $5 WHERE user_id = $6 RETURNING user_id, email, name, phone, role, picture, is_active`,
+        [name, phone ?? null, picture, email, passwordHash, userId]
     );
     return results.rows[0] ?? null;
 }
 
-export async function anonymize(userId) {
-    const results = await query(
+
+export async function anonymize(userId, runner = pool) {
+    const results = await runner.query(
         `UPDATE "user"
         SET email = $2,
             name = 'Utilisateur supprimé',
@@ -43,9 +44,15 @@ export async function anonymize(userId) {
     return results.rows[0] ?? null;
 }
 
-export async function deleteAddresses(userId) {
-    await query('DELETE FROM address WHERE user_id = $1', [userId]);
+export async function deleteAddresses(userId, runner = pool) {
+    await runner.query(
+        `DELETE FROM address
+         WHERE user_id = $1
+           AND address_id NOT IN (SELECT address_id FROM intervention WHERE address_id IS NOT NULL)`,
+        [userId]
+    );
 }
+
 
 export async function findAll({role} = {}, runner = pool) {
     const results = role

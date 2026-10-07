@@ -15,7 +15,16 @@ import { MyGarage } from './pages/MyGarage'
 import { ClientLayout } from './components/ClientLayout'
 import { AdminLayout } from './components/AdminLayout'
 import { AdminZones } from './pages/AdminZones'
-import { Historique } from './pages/Historique';
+import { Historique } from './pages/Historique'
+import { TechnicianLayout } from './components/TechnicianLayout';
+import { TechnicianProfil } from './pages/TechnicianProfil'
+import { AgendaJour } from './pages/AgendaJour'
+import { InterventionDetail } from './pages/InterventionDetail'
+import { HistoriqueTechnicien } from './pages/HistoriqueTechnicien'
+import { AdminInterventionDetail } from './pages/AdminInterventionDetail'
+import { AdminInterventions } from './pages/AdminInterventions'
+import { AdminForfaits } from './pages/AdminForfaits'
+import { AdminProduits } from './pages/AdminProduits'
 
 function App() {
   return (
@@ -33,6 +42,10 @@ function App() {
         <Route element={<ProtectedRoute roles={['admin']} />}>
           <Route element={<AdminLayout />}>
             <Route path="/admin/zones" element={<AdminZones />} />
+            <Route path="/admin/interventions/:id" element={<AdminInterventionDetail />} />
+            <Route path="/admin/interventions" element={<AdminInterventions />} />
+            <Route path="/admin/forfaits" element={<AdminForfaits />} />
+            <Route path="/admin/produits" element={<AdminProduits />} />
           </Route>
         </Route>
         <Route element={<ClientLayout />}>
@@ -45,6 +58,15 @@ function App() {
       </Route>
       <Route path="/login" element={<Login />} />
       <Route path="/signup" element={<Signup />} />
+      <Route element={<ProtectedRoute roles={['technician']} />}>
+        <Route element={<TechnicianLayout />}>
+          <Route path="/technician/agenda" element={<AgendaJour />} />
+          <Route path="/technician/profil" element={<TechnicianProfil />} />
+          <Route path="/technician/historique" element={<HistoriqueTechnicien />} />
+          <Route path="/technician/intervention/:id" element={<InterventionDetail />} />
+        </Route>
+      </Route>
+
     </Routes >
   )
 }

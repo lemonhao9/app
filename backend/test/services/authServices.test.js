@@ -68,7 +68,28 @@ describe('authServices.signup', () => {
         expect(result.token).toBe('fake_jwt_token');
         expect(result.user).not.toHaveProperty('passwordHash');
     });
+
+    it('convertit une violation 23505 (race condition) en 409 propre', async () => {
+        const fakeClient = { query: vi.fn().mockResolvedValue({}), release: vi.fn() };
+        db.getClient.mockResolvedValue(fakeClient);
+        userRepository.findByEmail.mockResolvedValue(null);
+        bcrypt.hash.mockResolvedValue('hashedPassword');
+        zoneService.findZoneForPoint.mockResolvedValue(3);
+        const dbError = new Error('duplicate key value violates unique constraint');
+        dbError.code = '23505';
+        userRepository.create.mockRejectedValue(dbError);
+
+        await expect(authServices.signup({
+            email: baseUser.email,
+            password: 'password123',
+            name: baseUser.name,
+            address: { label: '10 rue de la Republique', city: 'Lyon', postal_code: '69000', longitude: '4.83', latitude: '45.76' }
+        })).rejects.toMatchObject({ status: 409 });
+
+        expect(fakeClient.query).toHaveBeenCalledWith('ROLLBACK');
+    });
 });
+
 
 describe('authServices.login', () => {
     it('utilisateur inconnu (401)', async () => {

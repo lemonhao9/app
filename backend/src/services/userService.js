@@ -2,6 +2,7 @@ import bcrypt from 'bcryptjs';
 import * as userRepository from '../repositories/userRepository.js';
 import { deletePhotoFile } from '../utils/fileStorage.js';
 import { toSafeUser } from './authServices.js'
+import { getClient } from '../utils/db.js'
 
 const SALT_ROUNDS = 12;
 
@@ -18,10 +19,26 @@ export async function createTechnician ({email, password, name}) {
 
 export async function deleteAccount(userId) {
     const user = await userRepository.findById(userId);
-    await userRepository.anonymize(userId);
-    await userRepository.deleteAddresses(userId);
+    if (!user) {
+        const err = new Error('Utilisateur introuvable');
+        err.status = 404;
+        throw err;
+    }
+    const client = await getClient();
+    try {
+        await client.query('BEGIN');
+        await userRepository.anonymize(userId, client);
+        await userRepository.deleteAddresses(userId, client);
+        await client.query('COMMIT');
+    } catch (err) {
+        await client.query('ROLLBACK');
+        throw err;
+    } finally {
+        client.release();
+    }
     await deletePhotoFile(user.picture);
 }
+
 
 export async function updateProfile(userId, data) {
     const current = await userRepository.findById(userId);
@@ -30,6 +47,29 @@ export async function updateProfile(userId, data) {
         err.status = 404;
         throw err;
     }
+
+    let email = current.email;
+    if (data.email && data.email !== current.email) {
+        const existing = await userRepository.findByEmail(data.email);
+        if (existing && existing.user_id !== userId) {
+            const err = new Error('Email déjà utilisé');
+            err.status = 409;
+            throw err;
+        }
+        email = data.email;
+    }
+
+    let passwordHash = current.password_hash;
+    if (data.newPassword) {
+        const valid = await bcrypt.compare(data.currentPassword, current.password_hash);
+        if (!valid) {
+            const err = new Error('Mot de passe actuel incorrect');
+            err.status = 401;
+            throw err;
+        }
+        passwordHash = await bcrypt.hash(data.newPassword, SALT_ROUNDS);
+    }
+
     const picture = data.picture ?? current.picture;
     if (data.picture && current.picture && data.picture !== current.picture) {
         deletePhotoFile(current.picture)
@@ -38,6 +78,8 @@ export async function updateProfile(userId, data) {
         name: data.name ?? current.name,
         phone: data.phone ?? current.phone,
         picture,
+        email,
+        passwordHash,
     });
     return toSafeUser(updated);
 }

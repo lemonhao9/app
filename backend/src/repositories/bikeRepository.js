@@ -45,3 +45,11 @@ export async function remove(bikeId, runner = pool) {
     );
     return results.rows[0] ?? null;
 }
+
+export async function countInterventions(bikeId, runner = pool) {
+    const results = await runner.query(
+        `SELECT COUNT(*) FROM intervention WHERE bike_id = $1`,
+        [bikeId]
+    );
+    return Number(results.rows[0].count);
+}

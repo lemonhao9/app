@@ -1,7 +1,7 @@
 import 'dotenv/config';
 import express from 'express';
 import { createServer } from 'http';
-import { Server } from 'socket.io';
+import { initSocket } from './utils/socket.js';
 import cors from 'cors';
 import rateLimit from 'express-rate-limit';
 import { errorHandler } from './middlewares/errorHandler.js';
@@ -10,17 +10,13 @@ import router from './routes/index.js';
 import path from 'node:path';
 import * as interventionService from './services/interventionService.js';
 
+
 const app = express();
 const httpServer = createServer(app);
 
 app.set('trust proxy', 1);
 
-const io = new Server(httpServer, {
-  cors: {
-    origin: process.env.FRONTEND_URL || 'http://localhost:5173',
-    methods: ['GET', 'POST'],
-  },
-});
+const io = initSocket(httpServer);
 
 app.use(cors({ origin: process.env.FRONTEND_URL || 'http://localhost:5173' }));
 app.use(express.json());
