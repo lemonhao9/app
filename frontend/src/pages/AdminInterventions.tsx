@@ -1,6 +1,9 @@
 import { useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { getAllInterventions, type InterventionListItem } from '../services/interventions';
+import { getZones, type Zone } from '../services/zones';
+import { getAllFees, type Fee } from '../services/fees';
+import { getClients, getUserBikes, type ClientOption, type BikeOption } from '../services/users';
 
 const STATE_LABELS: Record<string, string> = {
     'prochainement': 'À venir',
@@ -21,10 +24,10 @@ const PAGE_SIZE = 6;
 
 export function AdminInterventions() {
     const [interventions, setInterventions] = useState<InterventionListItem[]>([]);
-    const [zoneOptions, setZoneOptions] = useState<{ zone_id: number; zone_name: string }[]>([]);
-    const [clientOptions, setClientOptions] = useState<{ client_id: number; client_name: string }[]>([]);
-    const [bikeOptions, setBikeOptions] = useState<{ bike_id: number; label: string }[]>([]);
-    const [feeOptions, setFeeOptions] = useState<{ fee_id: number; name_fee: string }[]>([]);
+    const [zoneOptions, setZoneOptions] = useState<Zone[]>([]);
+    const [clientOptions, setClientOptions] = useState<ClientOption[]>([]);
+    const [bikeOptions, setBikeOptions] = useState<BikeOption[]>([]);
+    const [feeOptions, setFeeOptions] = useState<Fee[]>([]);
     const [date, setDate] = useState('');
     const [startAt, setStartAt] = useState('');
     const [zoneId, setZoneId] = useState('');
@@ -38,23 +41,21 @@ export function AdminInterventions() {
     const [error, setError] = useState<string | null>(null);
 
     useEffect(() => {
-        getAllInterventions({ limit: 50 }).then(({ interventions }) => {
-            const zones = new Map<number, string>();
-            const clients = new Map<number, string>();
-            const bikes = new Map<number, string>();
-            const fees = new Map<number, string>();
-            interventions.forEach(iv => {
-                zones.set(iv.zone_id, iv.zone_name);
-                clients.set(iv.client_id, iv.client_name);
-                if (iv.bike_id) bikes.set(iv.bike_id, `${iv.bike_brand ?? ''} ${iv.bike_model ?? ''}`.trim());
-                fees.set(iv.fee_id, iv.name_fee);
-            });
-            setZoneOptions(Array.from(zones, ([zone_id, zone_name]) => ({ zone_id, zone_name })));
-            setClientOptions(Array.from(clients, ([client_id, client_name]) => ({ client_id, client_name })));
-            setBikeOptions(Array.from(bikes, ([bike_id, label]) => ({ bike_id, label })));
-            setFeeOptions(Array.from(fees, ([fee_id, name_fee]) => ({ fee_id, name_fee })));
-        }).catch(() => { });
+        Promise.all([getZones(), getClients(), getAllFees()])
+            .then(([zonesData, clientsData, feesData]) => {
+                setZoneOptions(zonesData.zones);
+                setClientOptions(clientsData.users);
+                setFeeOptions(feesData.fees);
+            })
+            .catch(() => { });
     }, []);
+
+    useEffect(() => {
+        if (!clientId) return;
+        getUserBikes(Number(clientId))
+            .then(data => setBikeOptions(data.bikes))
+            .catch(() => setBikeOptions([]));
+    }, [clientId]);
 
     function load(reset: boolean) {
         const currentOffset = reset ? 0 : offset;
@@ -94,15 +95,15 @@ export function AdminInterventions() {
                 <input type="time" value={startAt} onChange={e => setStartAt(e.target.value)} className="border border-gray-300 rounded-md px-3 py-2 text-sm" />
                 <select value={zoneId} onChange={e => setZoneId(e.target.value)} className="border border-gray-300 rounded-md px-3 py-2 text-sm">
                     <option value="">Toutes les zones</option>
-                    {zoneOptions.map(z => <option key={z.zone_id} value={z.zone_id}>{z.zone_name}</option>)}
+                    {zoneOptions.map(z => <option key={z.zone_id} value={z.zone_id}>{z.name}</option>)}
                 </select>
-                <select value={clientId} onChange={e => setClientId(e.target.value)} className="border border-gray-300 rounded-md px-3 py-2 text-sm">
+                <select value={clientId} onChange={e => { setClientId(e.target.value); setBikeId(''); setBikeOptions([]); }} className="border border-gray-300 rounded-md px-3 py-2 text-sm">
                     <option value="">Tous les clients</option>
-                    {clientOptions.map(c => <option key={c.client_id} value={c.client_id}>{c.client_name}</option>)}
+                    {clientOptions.map(c => <option key={c.user_id} value={c.user_id}>{c.name}</option>)}
                 </select>
-                <select value={bikeId} onChange={e => setBikeId(e.target.value)} className="border border-gray-300 rounded-md px-3 py-2 text-sm">
-                    <option value="">Tous les vélos</option>
-                    {bikeOptions.map(b => <option key={b.bike_id} value={b.bike_id}>{b.label}</option>)}
+                <select value={bikeId} onChange={e => setBikeId(e.target.value)} disabled={!clientId} className="border border-gray-300 rounded-md px-3 py-2 text-sm disabled:opacity-50">
+                    <option value="">{clientId ? 'Tous les vélos' : "Choisir d'abord un client"}</option>
+                    {bikeOptions.map(b => <option key={b.bike_id} value={b.bike_id}>{`${b.brand ?? ''} ${b.model ?? ''}`.trim() || `Vélo n°${b.bike_id}`}</option>)}
                 </select>
                 <select value={feeId} onChange={e => setFeeId(e.target.value)} className="border border-gray-300 rounded-md px-3 py-2 text-sm">
                     <option value="">Tous les forfaits</option>

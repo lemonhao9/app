@@ -19,7 +19,7 @@ interface Product {
 
 function formatDuration(minutes: number): string {
     if (minutes === 45) return "30-45 minutes";
-    if (minutes >= 60) return `${Math.floor(minutes / 60)}h`;
+    if (minutes >= 60) return minutes % 60 === 0 ? `${minutes / 60}h` : `${Math.floor(minutes / 60)}h${String(minutes % 60).padStart(2, '0')}`;
     return `${minutes} minutes`;
 }
 
@@ -131,7 +131,7 @@ export function Forfaits() {
                 )}
 
                 {!loading && !error && (
-                    <div className="grid grid-cols-5 gap-4 items-start">
+                    <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5 gap-4 items-start">
                         {fees.map(fee => (
                             <FeeCard key={fee.fee_id} fee={fee} />
                         ))}

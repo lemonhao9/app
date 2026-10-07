@@ -1,15 +1,4 @@
-const BASE = '/api/v1';
-
-function authHeaders(): HeadersInit {
-    const token = localStorage.getItem('hch_token');
-    return token ? { Authorization: `Bearer ${token}` } : {};
-}
-
-async function handle(res: Response) {
-    if (!res.ok) throw new Error((await res.json().catch(() => ({}))).error ?? 'Erreur');
-    return res.json();
-}
-
+import { BASE, authHeaders, handle } from './http';
 export interface InterventionDetail {
     intervention_id: number;
     state: string;

@@ -94,18 +94,19 @@ export const reassignInterventionSchema = z.object({
 });
 
 export const feeSchema = z.object({
-    name_fee: z.string().min(1).max(255),
-    price_fee: z.coerce.number().positive(),
-    duration: z.coerce.number().int().positive(),
+    name_fee: z.string().trim().min(1).max(255),
+    price_fee: z.coerce.number().positive().max(9999.99),
+    duration: z.coerce.number().int().positive().max(480),
     description_forfait: z.string().max(2000).optional(),
     optional_title: z.string().max(255).optional(),
-    optional_price: z.coerce.number().positive().optional(),
+    optional_price: z.coerce.number().positive().max(9999.99).optional(),
     optional_desc: z.string().max(2000).optional(),
 });
 
 export const productSchema = z.object({
-    name: z.string().min(1).max(255),
-    category: z.string().max(255).optional(),
+    name: z.string().trim().min(1).max(255),
+    category: z.enum(['produit', 'service']),
     description: z.string().max(2000).optional(),
-    price: z.coerce.number().positive(),
+    price: z.coerce.number().positive().max(9999.99),
 });
+

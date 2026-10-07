@@ -145,15 +145,25 @@ describe('interventionService.reassignIntervention', () => {
         expect(addressRepository.findById).not.toHaveBeenCalled();
     });
 
+    it("lève une 409 si le forfait du nouveau créneau diffère de celui de l'intervention", async () => {
+        interventionRepository.findById.mockResolvedValue({ intervention_id: 1, slot_id: 4, address_id: 3, state: 'prochainement' });
+        slotRepository.findBookableInfo.mockResolvedValue({ slot_id: 5, zone_id: 2, fee_id: 2, technician_id: 7, bookable: true });
+        slotRepository.findById.mockResolvedValue({ slot_id: 4, fee_id: 1 });
+
+        await expect(interventionService.reassignIntervention(1, { slot_id: 5 })).rejects.toMatchObject({ status: 409 });
+        expect(addressRepository.findById).not.toHaveBeenCalled();
+    });
+
     it("lève une 409 si la zone du nouveau créneau ne correspond pas à l'adresse du client", async () => {
-        interventionRepository.findById.mockResolvedValue({ intervention_id: 1, address_id: 3, state: 'prochainement' });
-        slotRepository.findBookableInfo.mockResolvedValue({ slot_id: 5, zone_id: 2, technician_id: 7, bookable: true });
+        interventionRepository.findById.mockResolvedValue({ intervention_id: 1, slot_id: 4, address_id: 3, state: 'prochainement' });
+        slotRepository.findBookableInfo.mockResolvedValue({ slot_id: 5, zone_id: 2, fee_id: 1, technician_id: 7, bookable: true });
+        slotRepository.findById.mockResolvedValue({ slot_id: 4, fee_id: 1 });
         addressRepository.findById.mockResolvedValue({ address_id: 3, zone_id: 4 });
 
         await expect(interventionService.reassignIntervention(1, { slot_id: 5 })).rejects.toMatchObject({ status: 409 });
     });
-});
 
+});
 
 describe('interventionService.getMyInterventions', () => {
     it("indique hasMore=false quand il n'y a pas de page suivante", async () => {

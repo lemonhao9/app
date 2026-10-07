@@ -51,3 +51,13 @@ export async function listUsers(req, res, next) {
         next(err);
     }
 }
+
+
+export async function listUserBikes(req, res, next) {
+    try {
+        const bikes = await userService.listUserBikes(Number(req.params.id));
+        res.json({ bikes });
+    } catch (err) {
+        next(err);
+    }
+}
