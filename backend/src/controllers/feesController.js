@@ -62,3 +62,12 @@ export async function deleteFee(req, res, next) {
         next(err);
     }
 }
+
+export async function activateFee(req, res, next) {
+    try {
+        await feesServices.activateFee(Number(req.params.id));
+        res.json({ message: 'Forfait réactivé avec succès' });
+    } catch (err) {
+        next(err);
+    }
+}

@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useState } from 'react';
 import { getAllFees, createFee, updateFee, desactivateFee, deleteFeePermanently, type Fee } from '../services/fees';
 import { Button } from '../components/ui/button';
+import { activateFee } from '../services/fees';
 
 export function AdminForfaits() {
     const [fees, setFees] = useState<Fee[]>([]);
@@ -75,12 +76,29 @@ export function AdminForfaits() {
     }
 
     async function handleDesactivate(id: number) {
-        if (editingId === id) resetForm();
-        await desactivateFee(id);
-        refresh();
+        if (!window.confirm('Désactiver ce forfait ? Les interventions déjà prévues sont maintenues.')) return;
+        setDeleteError(null);
+        try {
+            if (editingId === id) resetForm();
+            await desactivateFee(id);
+            refresh();
+        } catch (err) {
+            setDeleteError(err instanceof Error ? err.message : 'Impossible de désactiver ce forfait.');
+        }
+    }
+
+    async function handleActivate(id: number) {
+        setDeleteError(null);
+        try {
+            await activateFee(id);
+            refresh();
+        } catch (err) {
+            setDeleteError(err instanceof Error ? err.message : 'Impossible de réactiver ce forfait.');
+        }
     }
 
     async function handleDeletePermanently(id: number) {
+        if (!window.confirm('Supprimer définitivement ce forfait et ses créneaux libres ? Cette action est irréversible.')) return;
         setDeleteError(null);
         try {
             await deleteFeePermanently(id);
@@ -102,13 +120,14 @@ export function AdminForfaits() {
                 <h2 className="font-bold text-sm uppercase">{editingId ? 'Modifier le forfait' : 'Nouveau forfait'}</h2>
                 <div className="flex flex-wrap gap-2">
                     <input placeholder="Nom" value={nameFee} onChange={e => setNameFee(e.target.value)} required className="border border-gray-300 rounded-md px-3 py-2 text-sm" />
-                    <input type="number" step="0.01" placeholder="Prix (€)" value={priceFee} onChange={e => setPriceFee(e.target.value)} required className="border border-gray-300 rounded-md px-3 py-2 text-sm w-32" />
-                    <input type="number" placeholder="Durée (min)" value={duration} onChange={e => setDuration(e.target.value)} required className="border border-gray-300 rounded-md px-3 py-2 text-sm w-36" />
+                    <input type="number" step="0.01" min="0.01" max="9999.99" placeholder="Prix (€)" value={priceFee} onChange={e => setPriceFee(e.target.value)} required className="border border-gray-300 rounded-md px-3 py-2 text-sm w-32" />
+                    <input type="number" min="1" max="480" placeholder="Durée (min)" value={duration} onChange={e => setDuration(e.target.value)} required className="border border-gray-300 rounded-md px-3 py-2 text-sm w-36" />
                 </div>
                 <textarea placeholder="Description (optionnel)" value={description} onChange={e => setDescription(e.target.value)} className="border border-gray-300 rounded-md px-3 py-2 text-sm" />
+                <p className="text-xs text-gray-500">Une prestation par ligne. Pour la partie « Offert », écris une ligne « OFFERT: » puis les prestations offertes en dessous.</p>
                 <div className="flex flex-wrap gap-2">
                     <input placeholder="Titre de l'option (optionnel)" value={optionalTitle} onChange={e => setOptionalTitle(e.target.value)} className="border border-gray-300 rounded-md px-3 py-2 text-sm" />
-                    <input type="number" step="0.01" placeholder="Prix de l'option (€)" value={optionalPrice} onChange={e => setOptionalPrice(e.target.value)} className="border border-gray-300 rounded-md px-3 py-2 text-sm w-40" />
+                    <input type="number" step="0.01" min="0.01" max="9999.99" placeholder="Prix de l'option (€)" value={optionalPrice} onChange={e => setOptionalPrice(e.target.value)} className="border border-gray-300 rounded-md px-3 py-2 text-sm w-40" />
                     <input placeholder="Description de l'option" value={optionalDesc} onChange={e => setOptionalDesc(e.target.value)} className="border border-gray-300 rounded-md px-3 py-2 text-sm" />
                 </div>
                 {formError && <p className="text-sm text-red-600">{formError}</p>}
@@ -126,6 +145,7 @@ export function AdminForfaits() {
 
             {loading && <p className="text-sm text-gray-500">Chargement...</p>}
             {error && <p className="text-sm text-red-600">{error}</p>}
+            {deleteError && <p className="text-sm text-red-600">{deleteError}</p>}
 
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
                 {active.map(fee => (
@@ -148,12 +168,12 @@ export function AdminForfaits() {
             {inactive.length > 0 && (
                 <>
                     <h2 className="font-bold text-sm uppercase text-gray-500">Forfaits désactivés</h2>
-                    {deleteError && <p className="text-sm text-red-600">{deleteError}</p>}
                     <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
                         {inactive.map(fee => (
                             <div key={fee.fee_id} className="border rounded-xl p-4 bg-gray-50 flex flex-col gap-2 opacity-60">
                                 <p className="font-bold text-sm">{fee.name_fee}</p>
                                 <p className="text-sm">{fee.price_fee} € — {fee.duration} min</p>
+                                <Button variant="outline" size="sm" className="w-fit" onClick={() => handleActivate(fee.fee_id)}>Réactiver</Button>
                                 <Button variant="destructive" size="sm" className="w-fit" onClick={() => handleDeletePermanently(fee.fee_id)}>Supprimer définitivement</Button>
                             </div>
                         ))}

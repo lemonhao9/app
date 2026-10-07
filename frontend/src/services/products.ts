@@ -1,15 +1,4 @@
-const BASE = '/api/v1';
-
-function authHeaders(): HeadersInit {
-    const token = localStorage.getItem('hch_token');
-    return token ? { Authorization: `Bearer ${token}` } : {};
-}
-
-async function handle(res: Response) {
-    if (!res.ok) throw new Error((await res.json().catch(() => ({}))).error ?? 'Erreur');
-    return res.json();
-}
-
+import { BASE, authHeaders, handle } from './http';
 export interface Product {
     product_id: number;
     name: string;
@@ -56,4 +45,8 @@ export async function desactivateProduct(id: number): Promise<void> {
 
 export async function deleteProductPermanently(id: number): Promise<void> {
     await handle(await fetch(`${BASE}/products/${id}/permanent`, { method: 'DELETE', headers: authHeaders() }));
+}
+
+export async function activateProduct(id: number): Promise<void> {
+    await handle(await fetch(`${BASE}/products/${id}/activate`, { method: 'PATCH', headers: authHeaders() }));
 }

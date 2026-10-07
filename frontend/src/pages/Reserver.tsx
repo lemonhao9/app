@@ -61,7 +61,7 @@ const MAX_STEP = 5;
 
 function formatDuration(minutes: number): string {
     if (minutes === 45) return "30-45 minutes";
-    if (minutes >= 60) return `${Math.floor(minutes / 60)}h`;
+    if (minutes >= 60) return minutes % 60 === 0 ? `${minutes / 60}h` : `${Math.floor(minutes / 60)}h${String(minutes % 60).padStart(2, '0')}`;
     return `${minutes} minutes`;
 }
 
@@ -513,8 +513,16 @@ export function Reserver() {
             });
             const data = await res.json().catch(() => null);
 
-            if (!res.ok) {
-                if (res.status === 409) {
+                        if (!res.ok) {
+                if (res.status === 409 && data?.code === 'FEE_INACTIVE') {
+                    setSubmitError(data.error);
+                    setSelectedFeeId(null);
+                    setSelectedSlotId(null);
+                    setSelectedAddressId(null);
+                    setSelectedDay(null);
+                    setSelectedStartAt(null);
+                    setStep(2);
+                } else if (res.status === 409) {
                     setSubmitError(data?.error ?? "Ce créneau n'est plus disponible, merci d'en choisir un autre.");
                     setSelectedSlotId(null);
                     setStep(3);

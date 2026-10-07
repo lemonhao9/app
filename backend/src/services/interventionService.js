@@ -40,6 +40,12 @@ export async function createIntervention(clientId, { bike_id, slot_id, address_i
     }
 
     const fee = await feesRepository.findById(slot.fee_id);
+    if (!fee.is_active) {
+        const err = new Error("Le forfait choisi n'est plus proposé");
+        err.status = 409;
+        err.appCode = 'FEE_INACTIVE';
+        throw err;
+    }
     const products = product_ids.length ? await productsRepository.findByIds(product_ids) : [];
     if (products.length !== product_ids.length) {
         const err = new Error('Un ou plusieurs produits sélectionnés sont introuvables ou indisponibles');
@@ -60,10 +66,12 @@ export async function createIntervention(clientId, { bike_id, slot_id, address_i
             clientId,
             addressId: address_id,
             totalPrice,
+            feePrice: fee.price_fee,
         }, client);
-        for (const productId of product_ids) {
-            await interventionRepository.addProduct(intervention.intervention_id, productId, client);
+        for (const product of products) {
+            await interventionRepository.addProduct(intervention.intervention_id, product.product_id, product.price, client);
         }
+
         await client.query('COMMIT');
     } catch (err) {
         await client.query('ROLLBACK');
@@ -169,6 +177,14 @@ export async function reassignIntervention(interventionId, { slot_id }) {
         err.status = 409;
         throw err;
     }
+
+    const currentSlot = await slotRepository.findById(intervention.slot_id);
+    if (currentSlot.fee_id !== slot.fee_id) {
+        const err = new Error("Le nouveau créneau ne correspond pas au forfait de l'intervention");
+        err.status = 409;
+        throw err;
+    }
+
 
     const address = await addressRepository.findById(intervention.address_id);
     if (address.zone_id !== slot.zone_id) {

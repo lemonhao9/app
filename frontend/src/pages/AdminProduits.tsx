@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useState } from 'react';
-import { getAllProducts, createProduct, updateProduct, desactivateProduct, deleteProductPermanently, type Product } from '../services/products';
+import { getAllProducts, createProduct, updateProduct, desactivateProduct, activateProduct, deleteProductPermanently, type Product } from '../services/products';
 import { Button } from '../components/ui/button';
 
 export function AdminProduits() {
@@ -9,7 +9,7 @@ export function AdminProduits() {
 
     const [editingId, setEditingId] = useState<number | null>(null);
     const [name, setName] = useState('');
-    const [category, setCategory] = useState('');
+    const [category, setCategory] = useState('produit');
     const [price, setPrice] = useState('');
     const [description, setDescription] = useState('');
     const [formError, setFormError] = useState<string | null>(null);
@@ -27,13 +27,13 @@ export function AdminProduits() {
 
     function resetForm() {
         setEditingId(null);
-        setName(''); setCategory(''); setPrice(''); setDescription('');
+        setName(''); setCategory('produit'); setPrice(''); setDescription('');
     }
 
     function startEdit(product: Product) {
         setEditingId(product.product_id);
         setName(product.name);
-        setCategory(product.category ?? '');
+        setCategory(product.category === 'service' ? 'service' : 'produit');
         setPrice(String(product.price));
         setDescription(product.description ?? '');
         setFormError(null);
@@ -45,7 +45,7 @@ export function AdminProduits() {
         setSubmitting(true);
         const data = {
             name,
-            category: category || undefined,
+            category: category,
             description: description || undefined,
             price: Number(price),
         };
@@ -65,12 +65,29 @@ export function AdminProduits() {
     }
 
     async function handleDesactivate(id: number) {
-        if (editingId === id) resetForm();
-        await desactivateProduct(id);
-        refresh();
+        if (!window.confirm('Désactiver ce produit ? Les interventions déjà prévues sont maintenues.')) return;
+        setDeleteError(null);
+        try {
+            if (editingId === id) resetForm();
+            await desactivateProduct(id);
+            refresh();
+        } catch (err) {
+            setDeleteError(err instanceof Error ? err.message : 'Impossible de désactiver ce produit.');
+        }
+    }
+
+    async function handleActivate(id: number) {
+        setDeleteError(null);
+        try {
+            await activateProduct(id);
+            refresh();
+        } catch (err) {
+            setDeleteError(err instanceof Error ? err.message : 'Impossible de réactiver ce produit.');
+        }
     }
 
     async function handleDeletePermanently(id: number) {
+        if (!window.confirm('Supprimer définitivement ce produit ? Cette action est irréversible.')) return;
         setDeleteError(null);
         try {
             await deleteProductPermanently(id);
@@ -91,8 +108,8 @@ export function AdminProduits() {
                 <h2 className="font-bold text-sm uppercase">{editingId ? 'Modifier le produit' : 'Nouveau produit'}</h2>
                 <div className="flex flex-wrap gap-2">
                     <input placeholder="Nom" value={name} onChange={e => setName(e.target.value)} required className="border border-gray-300 rounded-md px-3 py-2 text-sm" />
-                    <input placeholder="Catégorie (optionnel)" value={category} onChange={e => setCategory(e.target.value)} className="border border-gray-300 rounded-md px-3 py-2 text-sm" />
-                    <input type="number" step="0.01" placeholder="Prix (€)" value={price} onChange={e => setPrice(e.target.value)} required className="border border-gray-300 rounded-md px-3 py-2 text-sm w-32" />
+                    <select value={category} onChange={e => setCategory(e.target.value)} className="border border-gray-300 rounded-md px-3 py-2 text-sm"><option value="produit">Produit</option><option value="service">Service</option></select>
+                    <input type="number" step="0.01" min="0.01" max="9999.99" placeholder="Prix (€)" value={price} onChange={e => setPrice(e.target.value)} required className="border border-gray-300 rounded-md px-3 py-2 text-sm w-32" />
                 </div>
                 <textarea placeholder="Description (optionnel)" value={description} onChange={e => setDescription(e.target.value)} className="border border-gray-300 rounded-md px-3 py-2 text-sm" />
                 {formError && <p className="text-sm text-red-600">{formError}</p>}
@@ -110,6 +127,7 @@ export function AdminProduits() {
 
             {loading && <p className="text-sm text-gray-500">Chargement...</p>}
             {error && <p className="text-sm text-red-600">{error}</p>}
+            {deleteError && <p className="text-sm text-red-600">{deleteError}</p>}
 
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
                 {active.map(product => (
@@ -130,12 +148,12 @@ export function AdminProduits() {
             {inactive.length > 0 && (
                 <>
                     <h2 className="font-bold text-sm uppercase text-gray-500">Produits désactivés</h2>
-                    {deleteError && <p className="text-sm text-red-600">{deleteError}</p>}
                     <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
                         {inactive.map(product => (
                             <div key={product.product_id} className="border rounded-xl p-4 bg-gray-50 flex flex-col gap-2 opacity-60">
                                 <p className="font-bold text-sm">{product.name}</p>
                                 <p className="text-sm">{product.price} €</p>
+                                <Button variant="outline" size="sm" className="w-fit" onClick={() => handleActivate(product.product_id)}>Réactiver</Button>
                                 <Button variant="destructive" size="sm" className="w-fit" onClick={() => handleDeletePermanently(product.product_id)}>Supprimer définitivement</Button>
                             </div>
                         ))}

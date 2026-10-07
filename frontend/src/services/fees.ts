@@ -1,14 +1,5 @@
-const BASE = '/api/v1';
+import { BASE, authHeaders, handle } from './http';
 
-function authHeaders(): HeadersInit {
-    const token = localStorage.getItem('hch_token');
-    return token ? { Authorization: `Bearer ${token}` } : {};
-}
-
-async function handle(res: Response) {
-    if (!res.ok) throw new Error((await res.json().catch(() => ({}))).error ?? 'Erreur');
-    return res.json();
-}
 
 export interface Fee {
     fee_id: number;
@@ -64,4 +55,8 @@ export async function desactivateFee(id: number): Promise<void> {
 
 export async function deleteFeePermanently(id: number): Promise<void> {
     await handle(await fetch(`${BASE}/fees/${id}/permanent`, { method: 'DELETE', headers: authHeaders() }));
+}
+
+export async function activateFee(id: number): Promise<void> {
+    await handle(await fetch(`${BASE}/fees/${id}/activate`, { method: 'PATCH', headers: authHeaders() }));
 }

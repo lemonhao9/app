@@ -44,12 +44,26 @@ export async function desactivate(feeId, runner = pool) {
     return result.rows[0] ?? null;
 }
 
-export async function countReferences(feeId) {
-    const result = await query(
-        `SELECT (SELECT COUNT(*) FROM slot WHERE fee_id = $1) AS slot_count`,
+export async function activate(feeId, runner = pool) {
+    const result = await runner.query(
+        `UPDATE fee SET is_active = true WHERE fee_id = $1 RETURNING fee_id`,
         [feeId]
     );
-    return { slotCount: Number(result.rows[0].slot_count) };
+    return result.rows[0] ?? null;
+}
+
+export async function countReferences(feeId) {
+    const result = await query(
+        `SELECT COUNT(*) AS intervention_count
+         FROM intervention i JOIN slot s ON s.slot_id = i.slot_id
+         WHERE s.fee_id = $1`,
+        [feeId]
+    );
+    return { interventionCount: Number(result.rows[0].intervention_count) };
+}
+
+export async function removeSlots(feeId, runner = pool) {
+    await runner.query(`DELETE FROM slot WHERE fee_id = $1`, [feeId]);
 }
 
 export async function remove(feeId, runner = pool) {

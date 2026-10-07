@@ -47,3 +47,14 @@ export async function deleteProduct(productId) {
     }
     await productsRepository.remove(productId);
 }
+
+export async function activateProduct(productId) {
+    const product = await productsRepository.activate(productId);
+    if (!product) {
+        const err = new Error('Produit introuvable');
+        err.status = 404;
+        throw err;
+    }
+    return product;
+}
+

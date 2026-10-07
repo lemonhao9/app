@@ -1,21 +1,22 @@
 import pool from '../utils/db.js';
 
-export async function create({ bikeId, slotId, technicianId, clientId, addressId, totalPrice }, runner = pool) {
+export async function create({ bikeId, slotId, technicianId, clientId, addressId, totalPrice, feePrice }, runner = pool) {
     const result = await runner.query(
-        `INSERT INTO intervention (bike_id, slot_id, technician_id, client_id, address_id, total_price)
-         VALUES ($1, $2, $3, $4, $5, $6)
+        `INSERT INTO intervention (bike_id, slot_id, technician_id, client_id, address_id, total_price, fee_price)
+         VALUES ($1, $2, $3, $4, $5, $6, $7)
          RETURNING intervention_id, state, total_price, is_paid, bike_id, slot_id, technician_id, client_id, address_id`,
-        [bikeId, slotId, technicianId, clientId, addressId, totalPrice]
+        [bikeId, slotId, technicianId, clientId, addressId, totalPrice, feePrice]
     );
     return result.rows[0];
 }
 
-export async function addProduct(interventionId, productId, runner = pool) {
+export async function addProduct(interventionId, productId, unitPrice, runner = pool) {
     await runner.query(
-        `INSERT INTO ajouter (intervention_id, product_id) VALUES ($1, $2)`,
-        [interventionId, productId]
+        `INSERT INTO ajouter (intervention_id, product_id, unit_price) VALUES ($1, $2, $3)`,
+        [interventionId, productId, unitPrice]
     );
 }
+
 
 export async function addPhoto(interventionId, url, runner = pool) {
     const result = await runner.query(
@@ -116,7 +117,7 @@ export async function findDetailById(interventionId, runner = pool) {
         `SELECT
             i.intervention_id, i.state, i.total_price, i.is_paid,
             b.brand AS bike_brand, b.model AS bike_model, b.bike_type, b.year AS bike_year, b.is_electric,
-            f.fee_id, f.name_fee, f.price_fee, f.duration,            s.day, s.start_at, s.ended_at,
+            f.fee_id, f.name_fee, i.fee_price AS price_fee, f.duration,            s.day, s.start_at, s.ended_at,
             z.zone_id, z.name AS zone_name,
             a.address_name, a.city, a.postal_code, a.latitude, a.longitude,
             c.name AS client_name, c.phone AS client_phone, c.email AS client_email,
@@ -139,7 +140,7 @@ export async function findDetailById(interventionId, runner = pool) {
 
 export async function findProductsByInterventionId(interventionId, runner = pool) {
     const result = await runner.query(
-        `SELECT ap.product_id, ap.name, ap.category, ap.price, aj.quantity
+        `SELECT ap.product_id, ap.name, ap.category, aj.unit_price AS price, aj.quantity
         FROM ajouter aj
         JOIN additional_product ap ON ap.product_id = aj.product_id
         WHERE aj.intervention_id = $1

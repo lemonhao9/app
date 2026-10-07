@@ -52,6 +52,14 @@ export async function desactivate(productId, runner = pool) {
     return result.rows[0] ?? null;
 }
 
+export async function activate(productId, runner = pool) {
+    const result = await runner.query(
+        `UPDATE additional_product SET is_active = true WHERE product_id = $1 RETURNING product_id`,
+        [productId]
+    );
+    return result.rows[0] ?? null;
+}
+
 export async function countReferences(productId) {
     const result = await query(
         `SELECT (SELECT COUNT(*) FROM ajouter WHERE product_id = $1) AS ajouter_count`,

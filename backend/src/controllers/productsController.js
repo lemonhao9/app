@@ -62,3 +62,12 @@ export async function deleteProduct(req, res, next) {
         next(err);
     }
 }
+
+export async function activateProduct(req, res, next) {
+    try {
+        await productsServices.activateProduct(Number(req.params.id));
+        res.json({ message: 'Produit réactivé avec succès' });
+    } catch (err) {
+        next(err);
+    }
+}
