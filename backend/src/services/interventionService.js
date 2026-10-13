@@ -105,8 +105,9 @@ export async function addPhotos(userId, role, interventionId, files) {
         err.status = 404;
         throw err;
     }
-    if (intervention.state !== 'en cours') {
-        const err = new Error("Cette intervention n'est plus en cours, ajout de photo refusé");
+    const allowedStates = role === 'client' ? ['prochainement', 'en cours'] : ['en cours'];
+    if (!allowedStates.includes(intervention.state)) {
+        const err = new Error("L'ajout de photo n'est plus possible sur cette intervention");
         err.status = 409;
         throw err;
     }
