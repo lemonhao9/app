@@ -33,7 +33,9 @@ app.use('/api/v1', router);
 
 app.get('/api/v1/health', (_req, res) => res.json({ status: 'ok' }));
 
-app.use('/uploads', express.static(path.join(process.cwd(), 'uploads')));
+app.use('/uploads', express.static(path.join(process.cwd(), 'uploads'), {
+  setHeaders: (res) => res.setHeader('X-Content-Type-Options', 'nosniff'),
+}));
 
 app.use(errorHandler);
 

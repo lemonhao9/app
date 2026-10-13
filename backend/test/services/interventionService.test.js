@@ -338,4 +338,21 @@ describe('interventionService.addPhotos', () => {
         await expect(interventionService.addPhotos(9, 'technician', 42, [])).rejects.toMatchObject({ status: 409 });
         expect(interventionRepository.addPhoto).not.toHaveBeenCalled();
     });
+
+    it("accepte les photos du client dès la réservation (état 'prochainement')", async () => {
+        interventionRepository.findById.mockResolvedValue({ client_id: 1, technician_id: 9, state: 'prochainement' });
+        interventionRepository.addPhoto.mockResolvedValueOnce({ photo_id: 1, url: '/uploads/a.jpg' });
+
+        const result = await interventionService.addPhotos(1, 'client', 42, [{ filename: 'a.jpg' }]);
+
+        expect(interventionRepository.addPhoto).toHaveBeenCalledWith(42, '/uploads/a.jpg');
+        expect(result).toEqual([{ photo_id: 1, url: '/uploads/a.jpg' }]);
+    });
+
+    it("refuse les photos du technicien tant que l'intervention n'a pas démarré", async () => {
+        interventionRepository.findById.mockResolvedValue({ client_id: 1, technician_id: 9, state: 'prochainement' });
+
+        await expect(interventionService.addPhotos(9, 'technician', 42, [])).rejects.toMatchObject({ status: 409 });
+        expect(interventionRepository.addPhoto).not.toHaveBeenCalled();
+    });
 });
