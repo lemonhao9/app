@@ -1,10 +1,19 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import bcrypt from 'bcryptjs';
 import * as userRepository from '../../src/repositories/userRepository.js';
+import * as bikeRepository from '../../src/repositories/bikeRepository.js';
+import * as interventionRepository from '../../src/repositories/interventionRepository.js';
+import * as db from '../../src/utils/db.js';
+import * as fileStorage from '../../src/utils/fileStorage.js';
 import * as userService from '../../src/services/userService.js';
 
 vi.mock('../../src/repositories/userRepository.js');
+vi.mock('../../src/repositories/bikeRepository.js');
+vi.mock('../../src/repositories/interventionRepository.js');
+vi.mock('../../src/utils/db.js');
+vi.mock('../../src/utils/fileStorage.js');
 vi.mock('bcryptjs');
+
 
 const currentUser = {
     user_id: 1,
@@ -62,5 +71,50 @@ describe('userService.updateProfile', () => {
             email: currentUser.email,
             passwordHash: currentUser.password_hash,
         }));
+    });
+});
+
+
+describe('userService.deleteAccount', () => {
+    it("lève une 404 si l'utilisateur n'existe pas", async () => {
+        userRepository.findById.mockResolvedValue(null);
+
+        await expect(userService.deleteAccount(1)).rejects.toMatchObject({ status: 404 });
+        expect(db.getClient).not.toHaveBeenCalled();
+    });
+
+    it('annule les interventions, efface les données et supprime les fichiers dans une transaction', async () => {
+        const client = { query: vi.fn(), release: vi.fn() };
+        db.getClient.mockResolvedValue(client);
+        userRepository.findById.mockResolvedValue({ ...currentUser, picture: '/uploads/moi.jpg' });
+        bikeRepository.findByUserId.mockResolvedValue([{ bike_id: 3, photo: '/uploads/velo.jpg' }, { bike_id: 4, photo: null }]);
+        interventionRepository.removePhotosByClientId.mockResolvedValue(['/uploads/inter.jpg']);
+
+        await userService.deleteAccount(1);
+
+        expect(client.query).toHaveBeenNthCalledWith(1, 'BEGIN');
+        expect(interventionRepository.cancelActiveByClientId).toHaveBeenCalledWith(1, client);
+        expect(interventionRepository.removePhotosByClientId).toHaveBeenCalledWith(1, client);
+        expect(bikeRepository.removeUnreferencedByUserId).toHaveBeenCalledWith(1, client);
+        expect(bikeRepository.clearPhotosByUserId).toHaveBeenCalledWith(1, client);
+        expect(userRepository.anonymize).toHaveBeenCalledWith(1, client);
+        expect(userRepository.deleteAddresses).toHaveBeenCalledWith(1, client);
+        expect(client.query).toHaveBeenLastCalledWith('COMMIT');
+        expect(client.release).toHaveBeenCalled();
+        expect(fileStorage.deletePhotoFile.mock.calls.map(call => call[0]).sort())
+            .toEqual(['/uploads/inter.jpg', '/uploads/moi.jpg', '/uploads/velo.jpg']);
+    });
+
+    it('annule la transaction et ne supprime aucun fichier si une étape échoue', async () => {
+        const client = { query: vi.fn(), release: vi.fn() };
+        db.getClient.mockResolvedValue(client);
+        bikeRepository.findByUserId.mockResolvedValue([{ bike_id: 3, photo: '/uploads/velo.jpg' }]);
+        userRepository.anonymize.mockRejectedValue(new Error('boom'));
+
+        await expect(userService.deleteAccount(1)).rejects.toThrow('boom');
+
+        expect(client.query).toHaveBeenLastCalledWith('ROLLBACK');
+        expect(client.release).toHaveBeenCalled();
+        expect(fileStorage.deletePhotoFile).not.toHaveBeenCalled();
     });
 });

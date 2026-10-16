@@ -3,6 +3,7 @@ import { Button } from '../components/ui/button';
 import { useState, type SyntheticEvent } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
+import { homePathForRole } from '../lib/utils';
 
 export function Login() {
   const navigate = useNavigate();
@@ -28,7 +29,7 @@ export function Login() {
         return;
       }
       login(data.token, data.user);
-      navigate('/');
+      navigate(homePathForRole(data.user.role));
     } catch {
       setError('Une erreur est survenue. Veuillez réessayer plus tard.');
     } finally {

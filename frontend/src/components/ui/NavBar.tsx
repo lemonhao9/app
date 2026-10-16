@@ -3,6 +3,7 @@ import { Link, useNavigate } from "react-router-dom";
 import { Button } from './button';
 import { Menu, X, ChevronDown } from 'lucide-react';
 import { useAuth } from '@/context/AuthContext';
+import { homePathForRole } from '@/lib/utils';
 import logoSrc from '@/assets/LELOGOHCHwhite.svg'
 import logoSrcDark from '@/assets/LELOGOHCHblack.svg'
 
@@ -45,6 +46,7 @@ function handleLogout() {
                             </button>
                             {userMenuOpen && (
                                 <div className="absolute right-0 mt-2 bg-white rounded-md shadow-lg border py-1 min-w-[160px]">
+                                    <Link to={homePathForRole(user.role)} onClick={() => setUserMenuOpen(false)} className="block w-full text-left px-4 py-2 text-gray-900 hover:bg-gray-100">Mon espace</Link>
                                     <button type="button" onClick={handleLogout} className="w-full text-left px-4 py-2 text-gray-900 hover:bg-gray-100">Se déconnecter</button>
                                 </div>
                             )}
@@ -79,6 +81,9 @@ function handleLogout() {
                         user ? (
                             <div className="flex flex-col gap-3">
                                 <p className="text-gray-900 font-medium">{user.name}</p>
+                                <Button asChild variant="outline" className="w-full">
+                                    <Link to={homePathForRole(user.role)} onClick={() => setIsOpen(false)}>Mon espace</Link>
+                                </Button>
                                 <Button variant="outline" className="w-full" onClick={handleLogout}>Se déconnecter</Button>
                             </div>
                         ) : (

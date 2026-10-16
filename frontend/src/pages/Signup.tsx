@@ -50,7 +50,7 @@ export function Signup() {
         return;
       }
       login(data.token, data.user);
-      navigate('/');
+      navigate('/profil');
     } catch {
       setError('Une erreur est survenue lors de l\'inscription. Veuillez réessayer.');
     } finally {
