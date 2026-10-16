@@ -36,33 +36,34 @@ export async function findById(interventionId, runner = pool) {
     return result.rows[0] ?? null;
 }
 
-export async function cancel(interventionId, runner = pool) {
+export async function cancel(interventionId, allowedStates, runner = pool) {
     const result = await runner.query(
-        `UPDATE intervention SET state = 'annulée' WHERE intervention_id = $1
+        `UPDATE intervention SET state = 'annulée'
+         WHERE intervention_id = $1 AND state = ANY($2::intervention_state[])
          RETURNING intervention_id, state, total_price, is_paid, bike_id, slot_id, technician_id, client_id, address_id`,
-        [interventionId]
+        [interventionId, allowedStates]
     );
-    return result.rows[0];
+    return result.rows[0] ?? null;
 }
 
-export async function updateState(interventionId, state, runner = pool) {
+export async function updateState(interventionId, state, fromState, runner = pool) {
     const result = await runner.query(
-        `UPDATE intervention SET state = $2 WHERE intervention_id = $1
+        `UPDATE intervention SET state = $2 WHERE intervention_id = $1 AND state = $3
          RETURNING intervention_id, state, total_price, is_paid, bike_id, slot_id, technician_id, client_id, address_id`,
-        [interventionId, state]
+        [interventionId, state, fromState]
     );
-    return result.rows[0];
+    return result.rows[0] ?? null;
 }
 
 export async function complete(interventionId, { totalPrice, isPaid }, runner = pool) {
     const result = await runner.query(
-        `UPDATE intervention SET state = 'terminée', total_price = $2, is_paid = $3 WHERE intervention_id = $1
+        `UPDATE intervention SET state = 'terminée', total_price = $2, is_paid = $3
+         WHERE intervention_id = $1 AND state = 'en cours'
          RETURNING intervention_id, state, total_price, is_paid, bike_id, slot_id, technician_id, client_id, address_id`,
         [interventionId, totalPrice, isPaid]
     );
-    return result.rows[0];
+    return result.rows[0] ?? null;
 }
-
 
 export async function findByClientId(clientId, { sort, limit, offset }, runner = pool) {
     const dir = sort === 'asc' ? 'ASC' : 'DESC';
@@ -271,4 +272,25 @@ export async function reassign(interventionId, { slotId, technicianId }, runner 
         [interventionId, slotId, technicianId]
     );
     return result.rows[0];
+}
+
+
+export async function cancelActiveByClientId(clientId, runner = pool) {
+    const result = await runner.query(
+        `UPDATE intervention SET state = 'annulée'
+         WHERE client_id = $1 AND state IN ('prochainement', 'en cours')
+         RETURNING intervention_id`,
+        [clientId]
+    );
+    return result.rows;
+}
+
+export async function removePhotosByClientId(clientId, runner = pool) {
+    const result = await runner.query(
+        `DELETE FROM intervention_photo
+         WHERE intervention_id IN (SELECT intervention_id FROM intervention WHERE client_id = $1)
+         RETURNING url`,
+        [clientId]
+    );
+    return result.rows.map(row => row.url);
 }

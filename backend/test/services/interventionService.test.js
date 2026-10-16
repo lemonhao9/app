@@ -39,7 +39,7 @@ describe('interventionService.cancelIntervention', () => {
 
         const result = await interventionService.cancelIntervention(1, 'client', 1);
 
-        expect(interventionRepository.cancel).toHaveBeenCalledWith(1);
+        expect(interventionRepository.cancel).toHaveBeenCalledWith(1, ['prochainement']);
         expect(result).toEqual({ intervention_id: 1, state: 'annulée' });
     });
 
@@ -281,7 +281,7 @@ describe('interventionService.startIntervention', () => {
 
         const result = await interventionService.startIntervention(9, 42);
 
-        expect(interventionRepository.updateState).toHaveBeenCalledWith(42, 'en cours');
+        expect(interventionRepository.updateState).toHaveBeenCalledWith(42, 'en cours', 'prochainement');
         expect(result).toEqual({ intervention_id: 42, state: 'en cours' });
     });
 });
@@ -354,5 +354,28 @@ describe('interventionService.addPhotos', () => {
 
         await expect(interventionService.addPhotos(9, 'technician', 42, [])).rejects.toMatchObject({ status: 409 });
         expect(interventionRepository.addPhoto).not.toHaveBeenCalled();
+    });
+});
+
+describe('interventionService — état modifié entre la lecture et l\'écriture', () => {
+    it("lève une 409 si l'annulation ne trouve plus l'intervention dans un état annulable", async () => {
+        interventionRepository.findById.mockResolvedValue({ intervention_id: 1, client_id: 1, technician_id: 9, state: 'prochainement' });
+        interventionRepository.cancel.mockResolvedValue(null);
+
+        await expect(interventionService.cancelIntervention(1, 'client', 1)).rejects.toMatchObject({ status: 409 });
+    });
+
+    it("lève une 409 si le démarrage ne trouve plus l'intervention 'prochainement'", async () => {
+        interventionRepository.findById.mockResolvedValue({ technician_id: 9, state: 'prochainement' });
+        interventionRepository.updateState.mockResolvedValue(null);
+
+        await expect(interventionService.startIntervention(9, 42)).rejects.toMatchObject({ status: 409 });
+    });
+
+    it("lève une 409 si la clôture ne trouve plus l'intervention 'en cours'", async () => {
+        interventionRepository.findById.mockResolvedValue({ technician_id: 9, state: 'en cours' });
+        interventionRepository.complete.mockResolvedValue(null);
+
+        await expect(interventionService.completeIntervention(9, 42, { total_price: 50, is_paid: true })).rejects.toMatchObject({ status: 409 });
     });
 });

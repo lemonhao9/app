@@ -7,6 +7,12 @@ import * as addressRepository from '../repositories/addressRepository.js';
 import * as feesRepository from '../repositories/feesRepository.js';
 import * as productsRepository from '../repositories/productsRepository.js';
 
+function stateChangedError() {
+    const err = new Error("L'état de cette intervention vient de changer, rechargez la page");
+    err.status = 409;
+    return err;
+}
+
 export async function createIntervention(clientId, { bike_id, slot_id, address_id, product_ids }) {
     const slot = await slotRepository.findBookableInfo(slot_id);
     if (!slot) {
@@ -140,7 +146,8 @@ export async function cancelIntervention(userId, role, interventionId) {
         err.status = 409;
         throw err;
     }
-    const cancelled = await interventionRepository.cancel(interventionId);
+    const cancelled = await interventionRepository.cancel(interventionId, allowedStates);
+    if (!cancelled) throw stateChangedError();
     if (['technician', 'admin'].includes(role)) {
         getIO()?.to(`intervention:${interventionId}`).emit('message:new', {
             user_id: userId,
@@ -227,7 +234,9 @@ export async function startIntervention(technicianId, interventionId) {
         err.status = 409;
         throw err;
     }
-    return interventionRepository.updateState(interventionId, 'en cours');
+    const started = await interventionRepository.updateState(interventionId, 'en cours', 'prochainement');
+    if (!started) throw stateChangedError();
+    return started;
 }
 
 export async function completeIntervention(technicianId, interventionId, { total_price, is_paid }) {
@@ -242,9 +251,10 @@ export async function completeIntervention(technicianId, interventionId, { total
         err.status = 409;
         throw err;
     }
-    return interventionRepository.complete(interventionId, { totalPrice: total_price, isPaid: is_paid });
+    const completed = await interventionRepository.complete(interventionId, { totalPrice: total_price, isPaid: is_paid });
+    if (!completed) throw stateChangedError();
+    return completed;
 }
-
 
 export async function getMyInterventions(clientId, { sort, limit, offset }) {
     const rows = await interventionRepository.findByClientId(clientId, { sort, limit, offset });

@@ -53,3 +53,17 @@ export async function countInterventions(bikeId, runner = pool) {
     );
     return Number(results.rows[0].count);
 }
+
+
+export async function removeUnreferencedByUserId(userId, runner = pool) {
+    await runner.query(
+        `DELETE FROM bike
+         WHERE user_id = $1
+           AND bike_id NOT IN (SELECT bike_id FROM intervention WHERE bike_id IS NOT NULL)`,
+        [userId]
+    );
+}
+
+export async function clearPhotosByUserId(userId, runner = pool) {
+    await runner.query(`UPDATE bike SET photo = NULL WHERE user_id = $1`, [userId]);
+}

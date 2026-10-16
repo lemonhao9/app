@@ -34,6 +34,7 @@ export async function anonymize(userId, runner = pool) {
         `UPDATE "user"
         SET email = $2,
             name = 'Utilisateur supprimé',
+            phone = null,
             picture = null,
             password_hash = 'Compte_supprimé',
             is_active = FALSE

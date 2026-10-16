@@ -51,6 +51,27 @@ export function Profil() {
         }
     }
 
+    async function handleDeleteAccount() {
+        if (!window.confirm('Supprimer définitivement votre compte ? Vos rendez-vous à venir seront annulés et vos données effacées. Cette action est irréversible.')) return;
+        setError(null);
+        try {
+            const token = localStorage.getItem('hch_token');
+            const res = await fetch('/api/v1/users/account', {
+                method: 'DELETE',
+                headers: { Authorization: `Bearer ${token}` },
+            });
+            if (!res.ok) {
+                const data = await res.json().catch(() => ({}));
+                setError(typeof data.error === 'string' ? data.error : 'Impossible de supprimer le compte.');
+                return;
+            }
+            logout();
+            navigate('/');
+        } catch {
+            setError('Une erreur est survenue.');
+        }
+    }
+
     useEffect(() => {
         const token = localStorage.getItem('hch_token');
         if (!token) return;
@@ -78,6 +99,9 @@ export function Profil() {
             <div className="flex flex-col gap-4 mt-4">
                 <Button onClick={() => { navigate('/reserver') }}>Prendre un rendez-vous</Button>
                 <Button onClick={logout} className="bg-red-900">Se déconnecter</Button>
+                {user.role === 'client' && (
+                    <Button variant="destructive" onClick={handleDeleteAccount}>Supprimer mon compte</Button>
+                )}
             </div>
         </div>
     );

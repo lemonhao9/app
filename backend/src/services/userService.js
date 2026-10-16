@@ -4,6 +4,7 @@ import { deletePhotoFile } from '../utils/fileStorage.js';
 import { toSafeUser } from './authServices.js'
 import { getClient } from '../utils/db.js'
 import * as bikeRepository from '../repositories/bikeRepository.js';
+import * as interventionRepository from '../repositories/interventionRepository.js';
 
 const SALT_ROUNDS = 12;
 
@@ -25,9 +26,15 @@ export async function deleteAccount(userId) {
         err.status = 404;
         throw err;
     }
+    const bikes = await bikeRepository.findByUserId(userId);
     const client = await getClient();
+    let photoUrls;
     try {
         await client.query('BEGIN');
+        await interventionRepository.cancelActiveByClientId(userId, client);
+        photoUrls = await interventionRepository.removePhotosByClientId(userId, client);
+        await bikeRepository.removeUnreferencedByUserId(userId, client);
+        await bikeRepository.clearPhotosByUserId(userId, client);
         await userRepository.anonymize(userId, client);
         await userRepository.deleteAddresses(userId, client);
         await client.query('COMMIT');
@@ -37,9 +44,9 @@ export async function deleteAccount(userId) {
     } finally {
         client.release();
     }
-    await deletePhotoFile(user.picture);
+    const files = [user.picture, ...bikes.map(bike => bike.photo), ...photoUrls].filter(Boolean);
+    await Promise.all(files.map(deletePhotoFile));
 }
-
 
 export async function updateProfile(userId, data) {
     const current = await userRepository.findById(userId);

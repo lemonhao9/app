@@ -59,8 +59,9 @@ export function AdminInterventionDetail() {
             .finally(() => setLoadingSlots(false));
     }, [showReassign, day, intervention]);
 
-    async function handleCancel() {
+        async function handleCancel() {
         if (!id) return;
+        if (!window.confirm("Annuler cette intervention ? Le créneau sera libéré et l'annulation est définitive.")) return;
         setCancelling(true);
         setActionError(null);
         try {

@@ -5,6 +5,10 @@ import { GeomanLayer, type GeomanLayerHandle } from '../components/GeomanLayer';
 import { getZones, createZone, deactivateZone, deleteZonePermanently, getZoneTechnicians, getTechnicians, assignTechnician, unassignTechnician, updateZone, type Zone, type Technician } from '../services/zones';
 import { Button } from '../components/ui/button';
 
+function messageOf(err: unknown, fallback: string): string {
+    return err instanceof Error ? err.message : fallback;
+}
+
 export function AdminZones() {
     const [zones, setZones] = useState<Zone[]>([]);
     const [pending, setPending] = useState<{ geojson: GeoJSON.Feature; bounds: L.LatLngBounds } | null>(null);
@@ -18,9 +22,13 @@ export function AdminZones() {
     const inactiveZones = zones.filter(z => !z.is_active);
     const geomanRef = useRef<GeomanLayerHandle>(null);
     const [editingZoneId, setEditingZoneId] = useState<number | null>(null);
-    const [deleteError, setDeleteError] = useState<string | null>(null);
+    const [actionError, setActionError] = useState<string | null>(null);
 
-    const refresh = useCallback(() => { getZones().then(({ zones }) => setZones(zones)); }, []);
+    const refresh = useCallback(() => {
+        getZones()
+            .then(({ zones }) => setZones(zones))
+            .catch(err => setActionError(messageOf(err, 'Impossible de charger les zones.')));
+    }, []);
     useEffect(() => { refresh(); }, [refresh]);
 
     const handleCreate = useCallback((geojson: GeoJSON.Feature, bounds: L.LatLngBounds) => {
@@ -30,35 +38,57 @@ export function AdminZones() {
     async function handleSubmit(e: React.FormEvent) {
         e.preventDefault();
         if (!pending) return;
+        if (!name.trim()) {
+            setActionError('Le nom de la zone est obligatoire.');
+            return;
+        }
+        setActionError(null);
         const center = pending.bounds.getCenter();
-        await createZone({ name, color, latitude: center.lat, longitude: center.lng, geojson: pending.geojson });
-        geomanRef.current?.clearPending();
-        setPending(null);
-        setName('');
-        refresh();
-    };
+        try {
+            await createZone({ name: name.trim(), color, latitude: center.lat, longitude: center.lng, geojson: pending.geojson });
+            geomanRef.current?.clearPending();
+            setPending(null);
+            setName('');
+            refresh();
+        } catch (err) {
+            setActionError(messageOf(err, 'Impossible de créer la zone.'));
+        }
+    }
 
     async function handleDeactivate(id: number) {
-        await deactivateZone(id);
-        if (editingZoneId === id) setEditingZoneId(null);
-        if (selectedZoneId === id) setSelectedZoneId(null);
-        refresh();
+        if (!window.confirm('Désactiver cette zone ? Ses créneaux ne seront plus proposés à la réservation, les interventions déjà prévues sont maintenues. Une zone désactivée ne peut pas être réactivée.')) return;
+        setActionError(null);
+        try {
+            await deactivateZone(id);
+            if (editingZoneId === id) setEditingZoneId(null);
+            if (selectedZoneId === id) setSelectedZoneId(null);
+            refresh();
+        } catch (err) {
+            setActionError(messageOf(err, 'Impossible de désactiver la zone.'));
+        }
     }
 
     async function handleDeletePermanently(id: number) {
-        setDeleteError(null);
+        if (!window.confirm('Supprimer définitivement cette zone ? Cette action est irréversible.')) return;
+        setActionError(null);
         try {
             await deleteZonePermanently(id);
             refresh();
         } catch (err) {
-            setDeleteError(err instanceof Error ? err.message : 'Impossible de supprimer la zone.');
+            setActionError(messageOf(err, 'Impossible de supprimer la zone.'));
         }
     }
 
-    useEffect(() => { getTechnicians().then(({ users }) => setAllTechnicians(users)); }, []);
+    useEffect(() => {
+        getTechnicians()
+            .then(({ users }) => setAllTechnicians(users))
+            .catch(err => setActionError(messageOf(err, 'Impossible de charger les techniciens.')));
+    }, []);
 
     const refreshAssigned = useCallback((zoneId: number) => {
-        getZoneTechnicians(zoneId).then(({ technicians }) => setAssignedTechnicians(technicians));
+        getZoneTechnicians(zoneId)
+            .then(({ technicians }) => setAssignedTechnicians(technicians))
+            .catch(err => setActionError(messageOf(err, 'Impossible de charger les techniciens de la zone.')));
     }, []);
 
     useEffect(() => {
@@ -72,15 +102,26 @@ export function AdminZones() {
 
     async function handleAssign() {
         if (!selectedZoneId || !selectedTechnicianId) return;
-        await assignTechnician(selectedZoneId, selectedTechnicianId);
-        setSelectedTechnicianId(null);
-        refreshAssigned(selectedZoneId);
+        setActionError(null);
+        try {
+            await assignTechnician(selectedZoneId, selectedTechnicianId);
+            setSelectedTechnicianId(null);
+            refreshAssigned(selectedZoneId);
+        } catch (err) {
+            setActionError(messageOf(err, "Impossible d'assigner ce technicien."));
+        }
     }
 
     async function handleUnassign(userId: number) {
         if (!selectedZoneId) return;
-        await unassignTechnician(selectedZoneId, userId);
-        refreshAssigned(selectedZoneId);
+        if (!window.confirm('Désassigner ce technicien ? Ses créneaux dans cette zone ne seront plus proposés à la réservation, les interventions déjà prévues sont maintenues.')) return;
+        setActionError(null);
+        try {
+            await unassignTechnician(selectedZoneId, userId);
+            refreshAssigned(selectedZoneId);
+        } catch (err) {
+            setActionError(messageOf(err, 'Impossible de désassigner ce technicien.'));
+        }
     }
 
     async function handleSaveEdit() {
@@ -88,10 +129,15 @@ export function AdminZones() {
         const result = geomanRef.current?.getEditedGeoJSON(editingZoneId);
         const zone = zones.find(z => z.zone_id === editingZoneId);
         if (!result || !zone) return;
+        setActionError(null);
         const center = result.bounds.getCenter();
-        await updateZone(editingZoneId, { name: zone.name, color: zone.color ?? undefined, latitude: center.lat, longitude: center.lng, geojson: result.geojson });
-        setEditingZoneId(null);
-        refresh();
+        try {
+            await updateZone(editingZoneId, { name: zone.name, color: zone.color ?? undefined, latitude: center.lat, longitude: center.lng, geojson: result.geojson });
+            setEditingZoneId(null);
+            refresh();
+        } catch (err) {
+            setActionError(messageOf(err, 'Impossible d\'enregistrer la zone.'));
+        }
     }
 
     function handleCancelEdit() {
@@ -101,6 +147,7 @@ export function AdminZones() {
     return (
         <>
         <h1 className="text-2xl font-bold mb-6 text-center">Gestion des zones</h1>
+        {actionError && <p className="text-sm text-red-600 mb-4 text-center">{actionError}</p>}
         <div className="flex gap-8">
             <aside className="w-64 shrink-0 flex flex-col gap-6">
                 <div>
@@ -108,7 +155,7 @@ export function AdminZones() {
                     {pending ? (
                         <form onSubmit={handleSubmit} className="flex flex-col gap-2">
                             <label className="flex flex-col text-sm">Nom
-                                <input value={name} onChange={e => setName(e.target.value)} />
+                                <input value={name} onChange={e => setName(e.target.value)} required />
                             </label>
                             <label className="flex flex-col text-sm">Couleur
                                 <input type="color" value={color} onChange={e => setColor(e.target.value)} />
@@ -180,8 +227,8 @@ export function AdminZones() {
                         <span className="text-sm text-gray-600">Modifications en cours...</span>
                         <Button size="sm" onClick={handleSaveEdit}>Enregistrer</Button>
                         <Button size="sm" variant="outline" onClick={handleCancelEdit}>Annuler</Button>
-                        </div>
-                        )}
+                    </div>
+                )}
             </div>
 
             <aside className="w-64 shrink-0">
@@ -212,8 +259,6 @@ export function AdminZones() {
                         </li>
                     ))}
                 </ul>
-
-                {deleteError && <p className="text-sm text-red-600 mt-2">{deleteError}</p>}
 
                 {inactiveZones.length > 0 && (
                     <div className="mt-6">
