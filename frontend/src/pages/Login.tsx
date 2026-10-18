@@ -1,12 +1,14 @@
 import { NavBar } from '../components/ui/NavBar';
 import { Button } from '../components/ui/button';
 import { useState, type SyntheticEvent } from 'react';
-import { useNavigate, Link } from 'react-router-dom';
+import { useNavigate, useLocation, Link } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import { homePathForRole } from '../lib/utils';
 
 export function Login() {
   const navigate = useNavigate();
+  const location = useLocation();
+  const from = (location.state as { from?: string } | null)?.from;
   const { login } = useAuth();
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
@@ -29,7 +31,7 @@ export function Login() {
         return;
       }
       login(data.token, data.user);
-      navigate(homePathForRole(data.user.role));
+      navigate(from && data.user.role === 'client' ? from : homePathForRole(data.user.role), { replace: true });
     } catch {
       setError('Une erreur est survenue. Veuillez réessayer plus tard.');
     } finally {

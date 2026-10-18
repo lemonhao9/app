@@ -117,4 +117,11 @@ describe('userService.deleteAccount', () => {
         expect(client.release).toHaveBeenCalled();
         expect(fileStorage.deletePhotoFile).not.toHaveBeenCalled();
     });
+
+    it("refuse la suppression (409) tant qu'une intervention est en cours", async () => {
+        interventionRepository.countInProgressByClientId.mockResolvedValue(1);
+
+        await expect(userService.deleteAccount(1)).rejects.toMatchObject({ status: 409 });
+        expect(db.getClient).not.toHaveBeenCalled();
+    });
 });

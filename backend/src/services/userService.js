@@ -26,11 +26,17 @@ export async function deleteAccount(userId) {
         err.status = 404;
         throw err;
     }
-    const bikes = await bikeRepository.findByUserId(userId);
+    if (await interventionRepository.countInProgressByClientId(userId) > 0) {
+        const err = new Error('Une intervention est en cours : vous pourrez supprimer votre compte une fois celle-ci terminée');
+        err.status = 409;
+        throw err;
+    }
     const client = await getClient();
+    let bikes;
     let photoUrls;
     try {
         await client.query('BEGIN');
+        bikes = await bikeRepository.findByUserId(userId, client);
         await interventionRepository.cancelActiveByClientId(userId, client);
         photoUrls = await interventionRepository.removePhotosByClientId(userId, client);
         await bikeRepository.removeUnreferencedByUserId(userId, client);

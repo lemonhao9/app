@@ -278,7 +278,7 @@ export async function reassign(interventionId, { slotId, technicianId }, runner 
 export async function cancelActiveByClientId(clientId, runner = pool) {
     const result = await runner.query(
         `UPDATE intervention SET state = 'annulée'
-         WHERE client_id = $1 AND state IN ('prochainement', 'en cours')
+         WHERE client_id = $1 AND state = 'prochainement'
          RETURNING intervention_id`,
         [clientId]
     );
@@ -293,4 +293,12 @@ export async function removePhotosByClientId(clientId, runner = pool) {
         [clientId]
     );
     return result.rows.map(row => row.url);
+}
+
+export async function countInProgressByClientId(clientId, runner = pool) {
+    const result = await runner.query(
+        `SELECT COUNT(*) FROM intervention WHERE client_id = $1 AND state = 'en cours'`,
+        [clientId]
+    );
+    return Number(result.rows[0].count);
 }

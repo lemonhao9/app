@@ -589,7 +589,7 @@ export function Reserver() {
                         ) : (
                             <>
                                 Connectez-vous ou créez un compte pour réserver une intervention.{' '}
-                                <Link to="/login" className="underline font-medium">Se connecter</Link>
+                                <Link to="/login" state={{ from: '/reserver' }} className="underline font-medium">Se connecter</Link>
                                 {' '}·{' '}
                                 <Link to="/signup" className="underline font-medium">Créer un compte</Link>
                             </>
