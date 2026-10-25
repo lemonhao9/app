@@ -26,3 +26,6 @@ coverage/
 
 #Ignore vscode AI rules
 .github\instructions\codacy.instructions.md
+
+# VSCode settings
+.vscode/settings.json
