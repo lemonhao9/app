@@ -70,7 +70,7 @@ export async function createIntervention(clientId, { bike_id, slot_id, address_i
             slotId: slot_id,
             technicianId: slot.technician_id,
             clientId,
-            addressId: address_id,
+            address,
             totalPrice,
             feePrice: fee.price_fee,
         }, client);
@@ -193,10 +193,8 @@ export async function reassignIntervention(interventionId, { slot_id }) {
         throw err;
     }
 
-
-    const address = await addressRepository.findById(intervention.address_id);
-    if (address.zone_id !== slot.zone_id) {
-        const err = new Error("Le nouveau créneau ne correspond pas à la zone de l'adresse du client");
+    if (currentSlot.zone_id !== slot.zone_id) {
+        const err = new Error("Le nouveau créneau ne correspond pas à la zone de l'adresse du rendez-vous");
         err.status = 409;
         throw err;
     }
@@ -220,7 +218,6 @@ export async function reassignIntervention(interventionId, { slot_id }) {
     }
     return updated;
 }
-
 
 export async function startIntervention(technicianId, interventionId) {
     const intervention = await interventionRepository.findById(interventionId);

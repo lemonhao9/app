@@ -85,7 +85,7 @@ describe('interventionService.cancelIntervention', () => {
         expect(socketUtil.getIO).not.toHaveBeenCalled();
     });
 
-        it("autorise l'admin à annuler une intervention 'en cours' sans vérification de propriété", async () => {
+    it("autorise l'admin à annuler une intervention 'en cours' sans vérification de propriété", async () => {
         interventionRepository.findById.mockResolvedValue({ intervention_id: 1, client_id: 1, technician_id: 9, state: 'en cours' });
         interventionRepository.cancel.mockResolvedValue({ intervention_id: 1, state: 'annulée' });
         socketUtil.getIO.mockReturnValue(undefined);
@@ -157,8 +157,7 @@ describe('interventionService.reassignIntervention', () => {
     it("lève une 409 si la zone du nouveau créneau ne correspond pas à l'adresse du client", async () => {
         interventionRepository.findById.mockResolvedValue({ intervention_id: 1, slot_id: 4, address_id: 3, state: 'prochainement' });
         slotRepository.findBookableInfo.mockResolvedValue({ slot_id: 5, zone_id: 2, fee_id: 1, technician_id: 7, bookable: true });
-        slotRepository.findById.mockResolvedValue({ slot_id: 4, fee_id: 1 });
-        addressRepository.findById.mockResolvedValue({ address_id: 3, zone_id: 4 });
+        slotRepository.findById.mockResolvedValue({ slot_id: 4, fee_id: 1, zone_id: 4 });
 
         await expect(interventionService.reassignIntervention(1, { slot_id: 5 })).rejects.toMatchObject({ status: 409 });
     });
@@ -250,7 +249,7 @@ describe('interventionService.getInterventionDetail', () => {
         expect(interventionRepository.findDetailById).not.toHaveBeenCalled();
     });
 
-        it("retourne le détail avec les produits additionnels et les photos si le technicien est assigné", async () => {
+    it("retourne le détail avec les produits additionnels et les photos si le technicien est assigné", async () => {
         interventionRepository.findById.mockResolvedValue({ client_id: 1, technician_id: 9 });
         interventionRepository.findDetailById.mockResolvedValue({ intervention_id: 42, bike_brand: 'Decathlon' });
         interventionRepository.findProductsByInterventionId.mockResolvedValue([{ product_id: 1, name: 'Antivol' }]);
