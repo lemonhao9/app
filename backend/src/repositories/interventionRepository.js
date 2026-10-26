@@ -299,3 +299,12 @@ export async function countInProgressByClientId(clientId, runner = pool) {
     );
     return Number(result.rows[0].count);
 }
+
+export async function anonymizeAddressesByClientId(clientId, runner = pool) {
+    await runner.query(
+        `UPDATE intervention
+         SET address_name = 'Adresse supprimée', address_latitude = NULL, address_longitude = NULL
+         WHERE client_id = $1`,
+        [clientId]
+    );
+}

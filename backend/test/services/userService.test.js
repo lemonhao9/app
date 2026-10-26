@@ -95,6 +95,7 @@ describe('userService.deleteAccount', () => {
         expect(client.query).toHaveBeenNthCalledWith(1, 'BEGIN');
         expect(interventionRepository.cancelActiveByClientId).toHaveBeenCalledWith(1, client);
         expect(interventionRepository.removePhotosByClientId).toHaveBeenCalledWith(1, client);
+        expect(interventionRepository.anonymizeAddressesByClientId).toHaveBeenCalledWith(1, client);
         expect(bikeRepository.removeUnreferencedByUserId).toHaveBeenCalledWith(1, client);
         expect(bikeRepository.clearPhotosByUserId).toHaveBeenCalledWith(1, client);
         expect(userRepository.anonymize).toHaveBeenCalledWith(1, client);

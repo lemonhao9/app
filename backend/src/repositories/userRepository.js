@@ -46,14 +46,8 @@ export async function anonymize(userId, runner = pool) {
 }
 
 export async function deleteAddresses(userId, runner = pool) {
-    await runner.query(
-        `DELETE FROM address
-         WHERE user_id = $1
-           AND address_id NOT IN (SELECT address_id FROM intervention WHERE address_id IS NOT NULL)`,
-        [userId]
-    );
+    await runner.query(`DELETE FROM address WHERE user_id = $1`, [userId]);
 }
-
 
 export async function findAll({role} = {}, runner = pool) {
     const results = role

@@ -39,6 +39,7 @@ export async function deleteAccount(userId) {
         bikes = await bikeRepository.findByUserId(userId, client);
         await interventionRepository.cancelActiveByClientId(userId, client);
         photoUrls = await interventionRepository.removePhotosByClientId(userId, client);
+        await interventionRepository.anonymizeAddressesByClientId(userId, client);
         await bikeRepository.removeUnreferencedByUserId(userId, client);
         await bikeRepository.clearPhotosByUserId(userId, client);
         await userRepository.anonymize(userId, client);
