@@ -110,3 +110,6 @@ export const productSchema = z.object({
     price: z.coerce.number().positive().max(9999.99),
 });
 
+export const addressCreateSchema = z.object({
+    label: z.string().trim().min(3).max(255),
+});

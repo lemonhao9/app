@@ -2,6 +2,7 @@ import { Router } from 'express';
 import rateLimit from 'express-rate-limit';
 import * as addressController from '../controllers/addressController.js';
 import { authenticate } from '../middlewares/authenticate.js';
+import { authorize } from '../middlewares/authorize.js';
 
 const router = Router();
 
@@ -15,5 +16,6 @@ const publicLookupLimiter = rateLimit({
 router.get('/geocode', publicLookupLimiter, addressController.geocode);
 router.get('/zone', publicLookupLimiter, addressController.getZoneForPoint);
 router.get('/me', authenticate, addressController.getMyAddresses);
+router.post('/', authenticate, authorize('client'), publicLookupLimiter, addressController.createAddress);
 
 export default router;

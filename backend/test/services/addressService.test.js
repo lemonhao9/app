@@ -1,5 +1,10 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 import * as addressService from '../../src/services/addressService.js';
+import * as addressRepository from '../../src/repositories/addressRepository.js';
+import * as zoneService from '../../src/services/zoneService.js';
+
+vi.mock('../../src/repositories/addressRepository.js');
+vi.mock('../../src/services/zoneService.js');
 
 const banResponse = {
     features: [
@@ -66,3 +71,56 @@ describe('addressService.geocode', () => {
         await expect(addressService.geocode('Rue Test')).rejects.toThrow('Erreur: BAN API request failed');
     });
     });
+
+describe('addressService.createAddress', () => {
+    const label = '10 Rue de la République, Lyon';
+
+    beforeEach(() => {
+        addressRepository.findByUserId.mockReset().mockResolvedValue([]);
+        addressRepository.create.mockReset().mockImplementation(async (data) => ({ address_id: 1, ...data }));
+        zoneService.findZoneForPoint.mockReset().mockResolvedValue(3);
+    });
+
+    it("enregistre l'adresse avec les coordonnées de la BAN et la zone déduite", async () => {
+        await addressService.createAddress(7, label);
+
+        expect(zoneService.findZoneForPoint).toHaveBeenCalledWith(45.7640, 4.8357);
+        expect(addressRepository.create).toHaveBeenCalledWith(expect.objectContaining({
+            addressName: label, postalCode: '69001', latitude: 45.7640, longitude: 4.8357,
+            zoneId: 3, isDefault: false, userId: 7,
+        }));
+    });
+
+    it('accepte une adresse hors zone (zone_id null)', async () => {
+        zoneService.findZoneForPoint.mockResolvedValue(null);
+
+        await addressService.createAddress(7, label);
+
+        expect(addressRepository.create).toHaveBeenCalledWith(expect.objectContaining({ zoneId: null }));
+    });
+
+    it("lève une 422 si le libellé ne correspond exactement à aucun résultat de la BAN", async () => {
+        await expect(addressService.createAddress(7, '10 Rue de la Republique')).rejects.toMatchObject({ status: 422 });
+        expect(addressRepository.create).not.toHaveBeenCalled();
+    });
+
+    it('lève une 502 si la BAN est injoignable', async () => {
+        global.fetch = vi.fn().mockRejectedValue(new Error('timeout'));
+
+        await expect(addressService.createAddress(7, label)).rejects.toMatchObject({ status: 502 });
+    });
+
+    it("lève une 409 sans appeler la BAN si l'adresse est déjà enregistrée", async () => {
+        addressRepository.findByUserId.mockResolvedValue([{ address_name: label }]);
+
+        await expect(addressService.createAddress(7, label)).rejects.toMatchObject({ status: 409 });
+        expect(global.fetch).not.toHaveBeenCalled();
+    });
+
+    it("lève une 409 sans appeler la BAN au-delà de 10 adresses", async () => {
+        addressRepository.findByUserId.mockResolvedValue(Array.from({ length: 10 }, (_, i) => ({ address_name: `a${i}` })));
+
+        await expect(addressService.createAddress(7, label)).rejects.toMatchObject({ status: 409 });
+        expect(global.fetch).not.toHaveBeenCalled();
+    });
+});
