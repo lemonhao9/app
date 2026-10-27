@@ -2,9 +2,11 @@ import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 import * as addressService from '../../src/services/addressService.js';
 import * as addressRepository from '../../src/repositories/addressRepository.js';
 import * as zoneService from '../../src/services/zoneService.js';
+import * as db from '../../src/utils/db.js';
 
 vi.mock('../../src/repositories/addressRepository.js');
 vi.mock('../../src/services/zoneService.js');
+vi.mock('../../src/utils/db.js');
 
 const banResponse = {
     features: [
@@ -122,5 +124,75 @@ describe('addressService.createAddress', () => {
 
         await expect(addressService.createAddress(7, label)).rejects.toMatchObject({ status: 409 });
         expect(global.fetch).not.toHaveBeenCalled();
+    });
+});
+
+describe('addressService — modification, suppression, adresse par défaut', () => {
+    const label = '10 Rue de la République, Lyon';
+    let client;
+
+    beforeEach(() => {
+        client = { query: vi.fn(), release: vi.fn() };
+        db.getClient.mockReset().mockResolvedValue(client);
+        addressRepository.findById.mockReset().mockResolvedValue({ address_id: 2, user_id: 7, address_name: 'Ancienne adresse', is_default: false });
+        addressRepository.findByUserId.mockReset().mockResolvedValue([]);
+        addressRepository.update.mockReset().mockImplementation(async (id, data) => ({ address_id: id, ...data }));
+        addressRepository.lockByUserId.mockReset().mockResolvedValue([{ address_id: 1 }, { address_id: 2 }]);
+        addressRepository.remove.mockReset();
+        addressRepository.promoteOldestAsDefault.mockReset();
+        addressRepository.clearDefault.mockReset();
+        addressRepository.setDefault.mockReset().mockResolvedValue({ address_id: 2, is_default: true });
+        zoneService.findZoneForPoint.mockReset().mockResolvedValue(3);
+    });
+
+    it("lève une 404 si l'adresse appartient à un autre client", async () => {
+        addressRepository.findById.mockResolvedValue({ address_id: 2, user_id: 99 });
+
+        await expect(addressService.updateAddress(7, 2, label)).rejects.toMatchObject({ status: 404 });
+        await expect(addressService.deleteAddress(7, 2)).rejects.toMatchObject({ status: 404 });
+        await expect(addressService.setDefaultAddress(7, 2)).rejects.toMatchObject({ status: 404 });
+        expect(db.getClient).not.toHaveBeenCalled();
+    });
+
+    it("regéocode le nouveau libellé et recalcule la zone à la modification", async () => {
+        await addressService.updateAddress(7, 2, label);
+
+        expect(zoneService.findZoneForPoint).toHaveBeenCalledWith(45.7640, 4.8357);
+        expect(addressRepository.update).toHaveBeenCalledWith(2, expect.objectContaining({ addressName: label, zoneId: 3 }));
+    });
+
+    it("refuse la suppression de la dernière adresse (409) et annule la transaction", async () => {
+        addressRepository.lockByUserId.mockResolvedValue([{ address_id: 2 }]);
+
+        await expect(addressService.deleteAddress(7, 2)).rejects.toMatchObject({ status: 409 });
+        expect(addressRepository.remove).not.toHaveBeenCalled();
+        expect(client.query).toHaveBeenLastCalledWith('ROLLBACK');
+        expect(client.release).toHaveBeenCalled();
+    });
+
+    it("désigne une nouvelle adresse par défaut quand on supprime celle par défaut", async () => {
+        addressRepository.findById.mockResolvedValue({ address_id: 2, user_id: 7, is_default: true });
+
+        await addressService.deleteAddress(7, 2);
+
+        expect(addressRepository.remove).toHaveBeenCalledWith(2, client);
+        expect(addressRepository.promoteOldestAsDefault).toHaveBeenCalledWith(7, client);
+        expect(client.query).toHaveBeenLastCalledWith('COMMIT');
+    });
+
+    it("retire l'ancienne adresse par défaut avant de poser la nouvelle, dans une transaction", async () => {
+        const result = await addressService.setDefaultAddress(7, 2);
+
+        expect(addressRepository.clearDefault).toHaveBeenCalledWith(7, client);
+        expect(addressRepository.setDefault).toHaveBeenCalledWith(2, client);
+        expect(client.query).toHaveBeenLastCalledWith('COMMIT');
+        expect(result).toEqual({ address_id: 2, is_default: true });
+    });
+
+    it("renvoie une 409 si l'index unique refuse une seconde adresse par défaut", async () => {
+        addressRepository.setDefault.mockRejectedValue(Object.assign(new Error('dup'), { code: '23505' }));
+
+        await expect(addressService.setDefaultAddress(7, 2)).rejects.toMatchObject({ status: 409 });
+        expect(client.query).toHaveBeenLastCalledWith('ROLLBACK');
     });
 });

@@ -1,5 +1,6 @@
 import * as addressRepository from '../repositories/addressRepository.js';
 import * as zoneService from './zoneService.js';
+import { getClient } from '../utils/db.js';
 
 const MAX_ADDRESSES_PER_USER = 10;
 
@@ -79,4 +80,82 @@ export async function createAddress(userId, label) {
         zoneId,
         userId,
     });
+}
+
+async function findOwnedAddress(userId, addressId) {
+    const address = await addressRepository.findById(addressId);
+    if (!address || address.user_id !== userId) {
+        const err = new Error('Adresse introuvable');
+        err.status = 404;
+        throw err;
+    }
+    return address;
+}
+
+export async function updateAddress(userId, addressId, label) {
+    const current = await findOwnedAddress(userId, addressId);
+    if (current.address_name === label) return current;
+    const existing = await addressRepository.findByUserId(userId);
+    if (existing.some(a => a.address_id !== current.address_id && a.address_name === label)) {
+        const err = new Error('Cette adresse est déjà enregistrée');
+        err.status = 409;
+        throw err;
+    }
+    const address = await geocodeExact(label);
+    const zoneId = await zoneService.findZoneForPoint(address.latitude, address.longitude);
+    return addressRepository.update(addressId, {
+        addressName: address.label,
+        city: address.city,
+        postalCode: address.postcode,
+        longitude: address.longitude,
+        latitude: address.latitude,
+        zoneId,
+    });
+}
+
+export async function deleteAddress(userId, addressId) {
+    const current = await findOwnedAddress(userId, addressId);
+    const client = await getClient();
+    try {
+        await client.query('BEGIN');
+        const owned = await addressRepository.lockByUserId(userId, client);
+        if (owned.length <= 1) {
+            const err = new Error('Vous devez conserver au moins une adresse');
+            err.status = 409;
+            throw err;
+        }
+        await addressRepository.remove(addressId, client);
+        if (current.is_default) {
+            await addressRepository.promoteOldestAsDefault(userId, client);
+        }
+        await client.query('COMMIT');
+    } catch (err) {
+        await client.query('ROLLBACK');
+        throw err;
+    } finally {
+        client.release();
+    }
+}
+
+export async function setDefaultAddress(userId, addressId) {
+    const current = await findOwnedAddress(userId, addressId);
+    if (current.is_default) return current;
+    const client = await getClient();
+    try {
+        await client.query('BEGIN');
+        await addressRepository.clearDefault(userId, client);
+        const updated = await addressRepository.setDefault(addressId, client);
+        await client.query('COMMIT');
+        return updated;
+    } catch (err) {
+        await client.query('ROLLBACK');
+        if (err.code === '23505') {
+            const conflict = new Error("L'adresse par défaut vient d'être modifiée, veuillez réessayer");
+            conflict.status = 409;
+            throw conflict;
+        }
+        throw err;
+    } finally {
+        client.release();
+    }
 }

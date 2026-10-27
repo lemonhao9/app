@@ -52,3 +52,34 @@ export async function createAddress(req, res, next) {
         next(err);
     }
 }
+
+export async function updateAddress(req, res, next) {
+    const parsed = addressCreateSchema.safeParse(req.body);
+    if (!parsed.success) {
+        return res.status(400).json({ error: parsed.error.flatten() });
+    }
+    try {
+        const address = await addressService.updateAddress(req.user.userId, Number(req.params.id), parsed.data.label);
+        res.json({ address });
+    } catch (err) {
+        next(err);
+    }
+}
+
+export async function setDefaultAddress(req, res, next) {
+    try {
+        const address = await addressService.setDefaultAddress(req.user.userId, Number(req.params.id));
+        res.json({ address });
+    } catch (err) {
+        next(err);
+    }
+}
+
+export async function deleteAddress(req, res, next) {
+    try {
+        await addressService.deleteAddress(req.user.userId, Number(req.params.id));
+        res.status(204).end();
+    } catch (err) {
+        next(err);
+    }
+}
