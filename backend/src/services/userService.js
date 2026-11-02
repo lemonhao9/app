@@ -1,4 +1,5 @@
 import bcrypt from 'bcryptjs';
+import { randomInt } from 'node:crypto';
 import * as userRepository from '../repositories/userRepository.js';
 import { deletePhotoFile } from '../utils/fileStorage.js';
 import { toSafeUser } from './authServices.js'
@@ -7,16 +8,36 @@ import * as bikeRepository from '../repositories/bikeRepository.js';
 import * as interventionRepository from '../repositories/interventionRepository.js';
 
 const SALT_ROUNDS = 12;
+const TEMP_PASSWORD_ALPHABET = 'ABCDEFGHJKLMNPQRSTUVWXYZabcdefghijkmnpqrstuvwxyz23456789';
+const TEMP_PASSWORD_LENGTH = 12;
 
-export async function createTechnician ({email, password, name}) {
+export function generateTemporaryPassword() {
+    return Array.from(
+        { length: TEMP_PASSWORD_LENGTH },
+        () => TEMP_PASSWORD_ALPHABET[randomInt(TEMP_PASSWORD_ALPHABET.length)]
+    ).join('');
+}
+
+export async function createTechnician({ email, name, phone }) {
     const existing = await userRepository.findByEmail(email);
-    if(existing) {
+    if (existing) {
         const err = new Error('Email déjà utilisé');
         err.status = 409;
         throw err;
     }
-    const passwordHash = await bcrypt.hash(password, SALT_ROUNDS);
-    return userRepository.create({email, passwordHash, name, role: 'technician'});
+    const temporaryPassword = generateTemporaryPassword();
+    const passwordHash = await bcrypt.hash(temporaryPassword, SALT_ROUNDS);
+    try {
+        const user = await userRepository.createWithTemporaryPassword({ email, passwordHash, name, phone: phone ?? null, role: 'technician' });
+        return { user, temporaryPassword };
+    } catch (err) {
+        if (err.code === '23505') {
+            const conflict = new Error('Email déjà utilisé');
+            conflict.status = 409;
+            throw conflict;
+        }
+        throw err;
+    }
 }
 
 export async function deleteAccount(userId) {

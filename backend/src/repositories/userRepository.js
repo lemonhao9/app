@@ -20,6 +20,16 @@ export async function create({email, passwordHash, name, phone = null, role = 'c
     return results.rows[0];
 }
 
+export async function createWithTemporaryPassword({ email, passwordHash, name, phone = null, role }, runner = pool) {
+    const results = await runner.query(
+        `INSERT INTO "user" (email, password_hash, name, phone, role, must_change_password, temp_password_expires_at)
+         VALUES ($1, $2, $3, $4, $5, TRUE, now() + interval '72 hours')
+         RETURNING user_id, email, name, phone, role, picture, is_active, must_change_password, temp_password_expires_at`,
+        [email, passwordHash, name, phone, role]
+    );
+    return results.rows[0];
+}
+
 export async function update(userId, {name, phone, picture, email, passwordHash}, runner = pool) {
     const results = await runner.query(
         `UPDATE "user" SET name = $1, phone = $2, picture = $3, email = $4, password_hash = $5 WHERE user_id = $6 RETURNING user_id, email, name, phone, role, picture, is_active`,

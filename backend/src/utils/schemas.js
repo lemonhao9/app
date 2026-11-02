@@ -113,3 +113,9 @@ export const productSchema = z.object({
 export const addressCreateSchema = z.object({
     label: z.string().trim().min(3).max(255),
 });
+
+export const technicianCreateSchema = z.object({
+    email: z.string().trim().email(),
+    name: z.string().trim().min(1).max(255),
+    phone: z.string().trim().min(1).max(20).optional(),
+});

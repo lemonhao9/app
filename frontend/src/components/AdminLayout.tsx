@@ -8,6 +8,7 @@ export function AdminLayout() {
         { to: '/admin/interventions', label: 'Interventions' },
         { to: '/admin/forfaits', label: 'Forfaits' },
         { to: '/admin/produits', label: 'Produits' },
+        { to: '/admin/techniciens', label: 'Techniciens' },
     ];
 
     return (

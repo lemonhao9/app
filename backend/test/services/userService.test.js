@@ -126,3 +126,33 @@ describe('userService.deleteAccount', () => {
         expect(db.getClient).not.toHaveBeenCalled();
     });
 });
+
+describe('userService.createTechnician', () => {
+    it("lève une 409 sans créer le compte si l'email est déjà utilisé", async () => {
+        userRepository.findByEmail.mockResolvedValue({ user_id: 2 });
+
+        await expect(userService.createTechnician({ email: 'pris@homecycl.fr', name: 'Paul' })).rejects.toMatchObject({ status: 409 });
+        expect(userRepository.createWithTemporaryPassword).not.toHaveBeenCalled();
+    });
+
+    it('génère un mot de passe provisoire, ne stocke que son hash et le renvoie une fois', async () => {
+        userRepository.findByEmail.mockResolvedValue(null);
+        bcrypt.hash.mockResolvedValue('hashed-temp');
+        userRepository.createWithTemporaryPassword.mockResolvedValue({ user_id: 9, role: 'technician', must_change_password: true });
+
+        const result = await userService.createTechnician({ email: 'tech@homecycl.fr', name: 'Paul' });
+
+        expect(result.temporaryPassword).toMatch(/^[A-HJ-NP-Za-km-z2-9]{12}$/);
+        expect(bcrypt.hash).toHaveBeenCalledWith(result.temporaryPassword, 12);
+        expect(userRepository.createWithTemporaryPassword).toHaveBeenCalledWith(expect.objectContaining({
+            passwordHash: 'hashed-temp', role: 'technician', phone: null,
+        }));
+        expect(result.user).toEqual({ user_id: 9, role: 'technician', must_change_password: true });
+    });
+
+    it('génère des mots de passe provisoires différents à chaque appel', () => {
+        const passwords = new Set(Array.from({ length: 50 }, () => userService.generateTemporaryPassword()));
+
+        expect(passwords.size).toBe(50);
+    });
+});

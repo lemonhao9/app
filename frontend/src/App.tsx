@@ -25,6 +25,7 @@ import { AdminInterventionDetail } from './pages/AdminInterventionDetail'
 import { AdminInterventions } from './pages/AdminInterventions'
 import { AdminForfaits } from './pages/AdminForfaits'
 import { AdminProduits } from './pages/AdminProduits'
+import { AdminTechniciens } from './pages/AdminTechniciens'
 
 function App() {
   return (
@@ -46,6 +47,7 @@ function App() {
             <Route path="/admin/interventions" element={<AdminInterventions />} />
             <Route path="/admin/forfaits" element={<AdminForfaits />} />
             <Route path="/admin/produits" element={<AdminProduits />} />
+            <Route path="/admin/techniciens" element={<AdminTechniciens />} />
           </Route>
         </Route>
         <Route element={<ClientLayout />}>

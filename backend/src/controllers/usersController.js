@@ -1,19 +1,21 @@
 import {z} from 'zod';
 import * as userService from '../services/userService.js';
-import { userSchema, userUpdateSchema } from '../utils/schemas.js';
+import { technicianCreateSchema, userUpdateSchema } from '../utils/schemas.js';
 
 export async function createTechnician(req, res, next) {
-    const parsed = userSchema.safeParse(req.body);
+    const parsed = technicianCreateSchema.safeParse(req.body);
     if (!parsed.success) {
         return res.status(400).json({error: parsed.error.flatten()});
     }
     try {
-        const user = await userService.createTechnician(parsed.data);
-        res.status(201).json({user});
+        const { user, temporaryPassword } = await userService.createTechnician(parsed.data);
+        res.set('Cache-Control', 'no-store');
+        res.status(201).json({ user, temporaryPassword });
     } catch (err) {
         next(err);
     }
 }
+
 
 export async function deleteAccount(req, res, next) {
     try{

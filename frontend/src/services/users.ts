@@ -33,3 +33,15 @@ export async function deleteMyAccount(): Promise<void> {
     const res = await fetch(`${BASE}/users/account`, { method: 'DELETE', headers: authHeaders() });
     if (!res.ok) await handle(res);
 }
+export interface CreatedTechnician {
+    user: { user_id: number; email: string; name: string; phone: string | null };
+    temporaryPassword: string;
+}
+
+export async function createTechnician(data: { email: string; name: string; phone?: string }): Promise<CreatedTechnician> {
+    return handle(await fetch(`${BASE}/users/technicians`, {
+        method: 'POST',
+        headers: { ...authHeaders(), 'Content-Type': 'application/json' },
+        body: JSON.stringify(data),
+    }));
+}
