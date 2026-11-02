@@ -9,10 +9,14 @@ export async function create({addressName, city, postalCode, longitude, latitude
     );
     return results.rows[0];
 }
+
 export async function findByUserId(userId, runner = pool) {
     const results = await runner.query(
-        `SELECT address_id, address_name, city, postal_code, longitude, latitude, is_default, zone_id, user_id
-            FROM address WHERE user_id = $1 ORDER BY is_default DESC, address_id`,
+        `SELECT a.address_id, a.address_name, a.city, a.postal_code, a.longitude, a.latitude, a.is_default, a.zone_id, a.user_id,
+                z.name AS zone_name, z.is_active AS zone_active
+            FROM address a
+            LEFT JOIN zone z ON z.zone_id = a.zone_id
+            WHERE a.user_id = $1 ORDER BY a.is_default DESC, a.address_id`,
         [userId]
     );
     return results.rows;

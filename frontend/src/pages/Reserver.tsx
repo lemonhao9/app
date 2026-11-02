@@ -28,6 +28,8 @@ interface Address {
     latitude: number;
     is_default: boolean;
     zone_id: number | null;
+    zone_name: string | null;
+    zone_active: boolean | null;
 }
 
 interface Slot {
@@ -237,8 +239,16 @@ function SlotStep({
                 ))}
             </select>
 
-            {!zoneId && (
-                <p className="text-sm text-orange-600">Cette adresse n'est associée à aucune zone d'intervention.</p>
+                        {!zoneId && (
+                <p className="text-sm text-orange-600">
+                    Cette adresse est hors de nos zones d'intervention : aucun créneau ne peut y être proposé.{' '}
+                    <Link to="/profil" className="underline">Gérer mes adresses</Link>
+                </p>
+            )}
+            {zoneId && selectedAddress?.zone_active === false && (
+                <p className="text-sm text-orange-600">
+                    La zone {selectedAddress.zone_name} n'est temporairement plus desservie : aucun créneau n'est proposé pour le moment.
+                </p>
             )}
 
             {zoneId && (

@@ -1,21 +1,12 @@
-import { useEffect, useState, type SyntheticEvent } from "react";
+import { useState, type SyntheticEvent } from "react";
 import { Button } from "../components/ui/button";
 import { useAuth } from "../context/AuthContext";
 import { useNavigate } from "react-router-dom";
-
-interface Address {
-    address_id: number;
-    address_name: string;
-    city: string;
-    postal_code: string;
-    is_default: boolean;
-}
+import { AddressManager } from "../components/AddressManager";
 
 export function Profil() {
     const { user, logout, updateUser } = useAuth();
     const navigate = useNavigate();
-    const [addresses, setAddresses] = useState<Address[]>([]);
-
     const [name, setName] = useState(user?.name ?? '');
     const [phone, setPhone] = useState(user?.phone ?? '');
     const [picture, setPicture] = useState<File | null>(null);
@@ -72,20 +63,11 @@ export function Profil() {
         }
     }
 
-    useEffect(() => {
-        const token = localStorage.getItem('hch_token');
-        if (!token) return;
-        fetch('/api/v1/addresses/me', { headers: { Authorization: `Bearer ${token}` } })
-            .then(res => res.json())
-            .then(data => setAddresses(data.addresses))
-            .catch(() => { });
-    }, []);
-
     if (!user) return null;
 
     return (
 
-        <div className="p-6 rounded shadow-md w-80">
+        <div className="p-6 rounded shadow-md w-full max-w-xl">
             <h1 className="text-center">Profil</h1>
             <form onSubmit={handleSubmit} className="flex flex-col gap-3">
                 <p>Email: {user.email}</p>
@@ -95,7 +77,7 @@ export function Profil() {
                 {error && <p className="text-sm text-red-600">{error}</p>}
                 <Button type="submit" disabled={loading}>{loading ? 'Enregistrement...' : 'Enregistrer'}</Button>
             </form>
-            <p>Adresse : {addresses.find(a => a.is_default)?.address_name ?? '___'}</p>
+            {user.role === 'client' && <AddressManager />}
             <div className="flex flex-col gap-4 mt-4">
                 <Button onClick={() => { navigate('/reserver') }}>Prendre un rendez-vous</Button>
                 <Button onClick={logout} className="bg-red-900">Se déconnecter</Button>
