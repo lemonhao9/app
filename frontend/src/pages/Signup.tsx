@@ -2,6 +2,7 @@ import { NavBar } from '@/components/ui/NavBar';
 import { Button } from '@/components/ui/button';
 import { AddressAutocomplete } from '@/components/AddressAutocomplete';
 import { useState, type SyntheticEvent } from 'react';
+import { Eye, EyeOff } from 'lucide-react';
 import { useNavigate, Link } from 'react-router-dom';
 import { useAuth } from '@/context/AuthContext';
 
@@ -19,6 +20,9 @@ export function Signup() {
   const [name, setName] = useState('');
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
+  const [confirmPassword, setConfirmPassword] = useState('');
+  const [showPassword, setShowPassword] = useState(false);
+  const mismatch = confirmPassword.length > 0 && password !== confirmPassword;
   const [phone, setPhone] = useState('');
   const [address, setAddress] = useState<SelectedAddress | null>(null);
   const [error, setError] = useState<string | null>(null);
@@ -28,6 +32,10 @@ export function Signup() {
     e.preventDefault();
     if (!address) {
       setError('Veuillez sélectionner une adresse valide.');
+      return;
+    }
+    if (password !== confirmPassword) {
+      setError('Les deux mots de passe ne correspondent pas.');
       return;
     }
     setLoading(true);
@@ -74,9 +82,21 @@ export function Signup() {
 
         </div>
 
-        <div className="flex flex-col gap-1">
+                <div className="flex flex-col gap-1">
           <label htmlFor="password" className="text-sm font-medium">Mot de passe</label>
-          <input id="password" type="password" value={password} onChange={(e) => setPassword(e.target.value)} required className="border border-gray-300 rounded-md px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500" />
+          <div className="relative">
+            <input id="password" type={showPassword ? 'text' : 'password'} value={password} onChange={(e) => setPassword(e.target.value)} required minLength={8} autoComplete="new-password" className="w-full border border-gray-300 rounded-md px-3 py-2 pr-10 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500" />
+            <button type="button" onClick={() => setShowPassword(v => !v)} aria-label={showPassword ? 'Masquer le mot de passe' : 'Afficher le mot de passe'} aria-pressed={showPassword} className="absolute inset-y-0 right-0 flex items-center px-3 text-gray-500 hover:text-gray-700">
+              {showPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+            </button>
+          </div>
+          <p className="text-xs text-gray-500">8 caractères minimum</p>
+        </div>
+
+        <div className="flex flex-col gap-1">
+          <label htmlFor="confirmPassword" className="text-sm font-medium">Confirmer le mot de passe</label>
+          <input id="confirmPassword" type={showPassword ? 'text' : 'password'} value={confirmPassword} onChange={(e) => setConfirmPassword(e.target.value)} required autoComplete="new-password" aria-invalid={mismatch} className="border border-gray-300 rounded-md px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500" />
+          {mismatch && <p className="text-xs text-red-600">Les mots de passe ne correspondent pas.</p>}
         </div>
 
         <div className="flex flex-col gap-1">

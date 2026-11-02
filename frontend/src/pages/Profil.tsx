@@ -3,6 +3,7 @@ import { Button } from "../components/ui/button";
 import { useAuth } from "../context/AuthContext";
 import { useNavigate } from "react-router-dom";
 import { AddressManager } from "../components/AddressManager";
+import { updateMe, deleteMyAccount } from "../services/users";
 
 export function Profil() {
     const { user, logout, updateUser } = useAuth();
@@ -23,20 +24,10 @@ export function Profil() {
         if (picture) formData.append('picture', picture);
 
         try {
-            const token = localStorage.getItem('hch_token');
-            const res = await fetch('/api/v1/users/me', {
-                method: 'PUT',
-                headers: { Authorization: `Bearer ${token}` },
-                body: formData,
-            });
-            const data = await res.json();
-            if (!res.ok) {
-                setError(typeof data.error === 'string' ? data.error : 'Impossible de mettre à jour le profil.');
-                return;
-            }
+            const data = await updateMe(formData);
             updateUser(data.user);
-        } catch {
-            setError('Une erreur est survenue.');
+        } catch (err) {
+            setError((err as Error).message);
         } finally {
             setLoading(false);
         }
@@ -46,27 +37,17 @@ export function Profil() {
         if (!window.confirm('Supprimer définitivement votre compte ? Vos rendez-vous à venir seront annulés et vos données effacées. Cette action est irréversible.')) return;
         setError(null);
         try {
-            const token = localStorage.getItem('hch_token');
-            const res = await fetch('/api/v1/users/account', {
-                method: 'DELETE',
-                headers: { Authorization: `Bearer ${token}` },
-            });
-            if (!res.ok) {
-                const data = await res.json().catch(() => ({}));
-                setError(typeof data.error === 'string' ? data.error : 'Impossible de supprimer le compte.');
-                return;
-            }
+            await deleteMyAccount();
             logout();
             navigate('/');
-        } catch {
-            setError('Une erreur est survenue.');
+        } catch (err) {
+            setError((err as Error).message);
         }
     }
 
     if (!user) return null;
 
     return (
-
         <div className="p-6 rounded shadow-md w-full max-w-xl">
             <h1 className="text-center">Profil</h1>
             <form onSubmit={handleSubmit} className="flex flex-col gap-3">
