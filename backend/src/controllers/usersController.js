@@ -1,6 +1,6 @@
 import {z} from 'zod';
 import * as userService from '../services/userService.js';
-import { technicianCreateSchema, userUpdateSchema } from '../utils/schemas.js';
+import { technicianCreateSchema, userUpdateSchema, adminUserUpdateSchema } from '../utils/schemas.js';
 
 export async function createTechnician(req, res, next) {
     const parsed = technicianCreateSchema.safeParse(req.body);
@@ -72,6 +72,37 @@ export async function listUserBikes(req, res, next) {
     try {
         const bikes = await userService.listUserBikes(Number(req.params.id));
         res.json({ bikes });
+    } catch (err) {
+        next(err);
+    }
+}
+
+export async function updateUserByAdmin(req, res, next) {
+    const parsed = adminUserUpdateSchema.safeParse(req.body);
+    if (!parsed.success) {
+        return res.status(400).json({ error: parsed.error.flatten() });
+    }
+    try {
+        const user = await userService.updateUserByAdmin(Number(req.params.id), parsed.data);
+        res.json({ user });
+    } catch (err) {
+        next(err);
+    }
+}
+
+export async function deactivateUser(req, res, next) {
+    try {
+        const user = await userService.deactivateUser(req.user.userId, Number(req.params.id));
+        res.json({ user });
+    } catch (err) {
+        next(err);
+    }
+}
+
+export async function activateUser(req, res, next) {
+    try {
+        const user = await userService.activateUser(Number(req.params.id));
+        res.json({ user });
     } catch (err) {
         next(err);
     }

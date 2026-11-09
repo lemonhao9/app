@@ -124,3 +124,11 @@ export const passwordChangeSchema = z.object({
     currentPassword: z.string().min(1),
     newPassword: z.string().min(8, "Le mot de passe doit contenir au moins 8 caractères"),
 });
+
+export const adminUserUpdateSchema = z.object({
+    name: z.string().trim().min(1).max(255).optional(),
+    email: z.string().trim().email().max(255).optional(),
+    phone: z.string().trim().max(20).transform(v => v || null).nullable().optional(),
+}).strict().refine(data => Object.keys(data).length > 0, {
+    message: 'Aucune donnée à modifier',
+});

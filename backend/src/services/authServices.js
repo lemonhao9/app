@@ -82,7 +82,7 @@ export function toSafeUser(user) {
         picture: user.picture ?? null,
         is_active: user.is_active,
         must_change_password: user.must_change_password ?? false,
-
+        is_deleted: user.deleted_at != null,
     };
 }
 

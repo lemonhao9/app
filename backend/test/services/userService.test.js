@@ -222,3 +222,60 @@ describe('userService.listUsers', () => {
         expect(result.users[0]).not.toHaveProperty('password_hash');
     });
 });
+
+describe('userService.updateUserByAdmin', () => {
+    it('lève une 409 sur un compte supprimé', async () => {
+        userRepository.findById.mockResolvedValue({ ...currentUser, is_active: false, deleted_at: new Date() });
+
+        await expect(userService.updateUserByAdmin(1, { name: 'Nouveau' })).rejects.toMatchObject({ status: 409 });
+        expect(userRepository.updateIdentity).not.toHaveBeenCalled();
+    });
+
+    it("lève une 409 si l'e-mail appartient à un autre compte", async () => {
+        userRepository.findByEmail.mockResolvedValue({ user_id: 2 });
+
+        await expect(userService.updateUserByAdmin(1, { email: 'pris@homecycl.fr' })).rejects.toMatchObject({ status: 409 });
+        expect(userRepository.updateIdentity).not.toHaveBeenCalled();
+    });
+
+    it('conserve les champs non envoyés et efface le téléphone si null', async () => {
+        userRepository.updateIdentity.mockImplementation((id, data) => Promise.resolve({ ...currentUser, ...data }));
+
+        const user = await userService.updateUserByAdmin(1, { name: 'Jean Dupont', phone: null });
+
+        expect(userRepository.updateIdentity).toHaveBeenCalledWith(1, { name: 'Jean Dupont', email: currentUser.email, phone: null });
+        expect(user.phone).toBeNull();
+        expect(user).not.toHaveProperty('password_hash');
+    });
+});
+
+describe('userService.deactivateUser / activateUser', () => {
+    it("refuse que l'admin désactive son propre compte (409)", async () => {
+        await expect(userService.deactivateUser(1, 1)).rejects.toMatchObject({ status: 409 });
+        expect(userRepository.setActive).not.toHaveBeenCalled();
+    });
+
+    it('refuse tant que des interventions sont à venir ou en cours (409)', async () => {
+        interventionRepository.countActiveByUserId.mockResolvedValue(2);
+
+        await expect(userService.deactivateUser(99, 1)).rejects.toMatchObject({ status: 409 });
+        expect(userRepository.setActive).not.toHaveBeenCalled();
+    });
+
+    it('désactive un compte sans intervention active', async () => {
+        interventionRepository.countActiveByUserId.mockResolvedValue(0);
+        userRepository.setActive.mockResolvedValue({ ...currentUser, is_active: false });
+
+        const user = await userService.deactivateUser(99, 1);
+
+        expect(userRepository.setActive).toHaveBeenCalledWith(1, false);
+        expect(user.is_active).toBe(false);
+    });
+
+    it('refuse de réactiver un compte supprimé (409)', async () => {
+        userRepository.findById.mockResolvedValue({ ...currentUser, is_active: false, deleted_at: new Date() });
+
+        await expect(userService.activateUser(1)).rejects.toMatchObject({ status: 409 });
+        expect(userRepository.setActive).not.toHaveBeenCalled();
+    });
+});

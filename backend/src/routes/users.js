@@ -21,4 +21,10 @@ router.delete('/account', authenticate, authorize('client'), userController.dele
 
 router.put('/me', authenticate, upload.single('picture'), userController.updateProfile);
 
+router.put('/:id', authenticate, authorize('admin'), userController.updateUserByAdmin);
+
+router.patch('/:id/deactivate', authenticate, authorize('admin'), userController.deactivateUser);
+
+router.patch('/:id/activate', authenticate, authorize('admin'), userController.activateUser);
+
 export default router;

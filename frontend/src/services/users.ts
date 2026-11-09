@@ -82,6 +82,7 @@ export interface UserListItem {
     role: User['role'];
     is_active: boolean;
     must_change_password: boolean;
+    is_deleted: boolean;
 }
 
 export async function listUsers(params: { role?: User['role']; q?: string; limit: number; offset: number }): Promise<{ users: UserListItem[]; hasMore: boolean }> {
@@ -89,4 +90,20 @@ export async function listUsers(params: { role?: User['role']; q?: string; limit
     if (params.role) search.set('role', params.role);
     if (params.q) search.set('q', params.q);
     return handle(await fetch(`${BASE}/users?${search}`, { headers: authHeaders() }));
+}
+
+export async function updateUserByAdmin(userId: number, data: { name?: string; email?: string; phone?: string }): Promise<{ user: UserListItem }> {
+    return handle(await fetch(`${BASE}/users/${userId}`, {
+        method: 'PUT',
+        headers: { ...authHeaders(), 'Content-Type': 'application/json' },
+        body: JSON.stringify(data),
+    }));
+}
+
+export async function deactivateUser(userId: number): Promise<{ user: UserListItem }> {
+    return handle(await fetch(`${BASE}/users/${userId}/deactivate`, { method: 'PATCH', headers: authHeaders() }));
+}
+
+export async function activateUser(userId: number): Promise<{ user: UserListItem }> {
+    return handle(await fetch(`${BASE}/users/${userId}/activate`, { method: 'PATCH', headers: authHeaders() }));
 }

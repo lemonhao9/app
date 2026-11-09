@@ -300,6 +300,16 @@ export async function countInProgressByClientId(clientId, runner = pool) {
     return Number(result.rows[0].count);
 }
 
+export async function countActiveByUserId(userId, runner = pool) {
+    const result = await runner.query(
+        `SELECT COUNT(*) FROM intervention
+         WHERE (client_id = $1 OR technician_id = $1)
+           AND state IN ('prochainement', 'en cours')`,
+        [userId]
+    );
+    return Number(result.rows[0].count);
+}
+
 export async function anonymizeAddressesByClientId(clientId, runner = pool) {
     await runner.query(
         `UPDATE intervention

@@ -63,6 +63,80 @@ export async function regenerateTemporaryPassword(userId) {
     return { user: updated, temporaryPassword };
 }
 
+async function findManageableUser(userId) {
+    const user = await userRepository.findById(userId);
+    if (!user) {
+        const err = new Error('Utilisateur introuvable');
+        err.status = 404;
+        throw err;
+    }
+    if (user.deleted_at) {
+        const err = new Error('Ce compte a été supprimé : il ne peut plus être modifié');
+        err.status = 409;
+        throw err;
+    }
+    return user;
+}
+
+export async function updateUserByAdmin(userId, data) {
+    const current = await findManageableUser(userId);
+    const email = data.email ?? current.email;
+    if (email !== current.email) {
+        const existing = await userRepository.findByEmail(email);
+        if (existing && existing.user_id !== userId) {
+            const err = new Error('Email déjà utilisé');
+            err.status = 409;
+            throw err;
+        }
+    }
+    let updated;
+    try {
+        updated = await userRepository.updateIdentity(userId, {
+            name: data.name ?? current.name,
+            email,
+            phone: data.phone !== undefined ? data.phone : current.phone,
+        });
+    } catch (err) {
+        if (err.code === '23505') {
+            const conflict = new Error('Email déjà utilisé');
+            conflict.status = 409;
+            throw conflict;
+        }
+        throw err;
+    }
+    if (!updated) {
+        const err = new Error('Utilisateur introuvable');
+        err.status = 404;
+        throw err;
+    }
+    return toSafeUser(updated);
+}
+
+export async function deactivateUser(adminId, userId) {
+    if (adminId === userId) {
+        const err = new Error('Vous ne pouvez pas désactiver votre propre compte');
+        err.status = 409;
+        throw err;
+    }
+    const user = await findManageableUser(userId);
+    if (!user.is_active) return toSafeUser(user);
+    const activeCount = await interventionRepository.countActiveByUserId(userId);
+    if (activeCount > 0) {
+        const err = new Error(`${activeCount} intervention(s) à venir ou en cours sont liées à ce compte : annulez-les ou réassignez-les avant de le désactiver`);
+        err.status = 409;
+        throw err;
+    }
+    const updated = await userRepository.setActive(userId, false);
+    return toSafeUser(updated);
+}
+
+export async function activateUser(userId) {
+    const user = await findManageableUser(userId);
+    if (user.is_active) return toSafeUser(user);
+    const updated = await userRepository.setActive(userId, true);
+    return toSafeUser(updated);
+}
+
 export async function deleteAccount(userId) {
     const user = await userRepository.findById(userId);
     if (!user) {
