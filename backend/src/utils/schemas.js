@@ -132,3 +132,16 @@ export const adminUserUpdateSchema = z.object({
 }).strict().refine(data => Object.keys(data).length > 0, {
     message: 'Aucune donnée à modifier',
 });
+
+export const planningQuerySchema = z.object({
+    start: z.string().regex(/^\d{4}-\d{2}-\d{2}$/),
+    end: z.string().regex(/^\d{4}-\d{2}-\d{2}$/),
+    technician_id: z.coerce.number().int().positive().optional(),
+    zone_id: z.coerce.number().int().positive().optional(),
+}).refine(data => data.end > data.start, {
+    message: 'La date de fin doit suivre la date de début',
+    path: ['end'],
+}).refine(data => (Date.parse(data.end) - Date.parse(data.start)) / 86_400_000 <= 42, {
+    message: 'Période limitée à 42 jours',
+    path: ['end'],
+});

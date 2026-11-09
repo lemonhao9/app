@@ -14,6 +14,7 @@ router.get('/me', authenticate, authorize('client'), interventionController.getM
 router.get('/today', authenticate, authorize('technician'), interventionController.getTodayForTechnician);
 router.get('/history', authenticate, authorize('technician'), interventionController.getHistoryForTechnician);
 router.get('/', authenticate, authorize('admin'), interventionController.getAllInterventions)
+router.get('/planning', authenticate, authorize('admin'), interventionController.getPlanning);
 router.get('/:id', authenticate, authorize('technician', 'client', 'admin'), interventionController.getInterventionDetail);    
 router.patch('/:id/start', authenticate, authorize('technician'), interventionController.startIntervention);
 router.patch('/:id/complete', authenticate, authorize('technician'), interventionController.completeIntervention);

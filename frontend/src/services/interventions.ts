@@ -102,3 +102,24 @@ export async function getAllInterventions(query: InterventionListQuery): Promise
     });
     return handle(await fetch(`${BASE}/interventions?${params.toString()}`, { headers: authHeaders() }));
 }
+
+export interface PlanningIntervention {
+    intervention_id: number;
+    state: 'prochainement' | 'en cours' | 'terminée';
+    start: string;
+    end: string;
+    name_fee: string;
+    zone_id: number;
+    zone_name: string;
+    client_name: string;
+    technician_id: number | null;
+    technician_name: string | null;
+    city: string | null;
+}
+
+export async function getPlanning(query: { start: string; end: string; technician_id?: number; zone_id?: number }): Promise<{ interventions: PlanningIntervention[] }> {
+    const params = new URLSearchParams({ start: query.start, end: query.end });
+    if (query.technician_id) params.set('technician_id', String(query.technician_id));
+    if (query.zone_id) params.set('zone_id', String(query.zone_id));
+    return handle(await fetch(`${BASE}/interventions/planning?${params}`, { headers: authHeaders() }));
+}

@@ -276,6 +276,10 @@ export async function getAllInterventions({ date, start_at, zone_id, client_id, 
     return { interventions: rows.slice(0, limit), hasMore };
 }
 
+export async function getPlanning({ start, end, technician_id, zone_id }) {
+    const interventions = await interventionRepository.findForPlanning({ start, end, technicianId: technician_id, zoneId: zone_id });
+    return { interventions };
+}
 
 export async function getInterventionDetail(userId, role, interventionId) {
     const allowed = await canAccessIntervention(userId, role, interventionId);

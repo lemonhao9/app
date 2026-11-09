@@ -378,3 +378,14 @@ describe('interventionService — état modifié entre la lecture et l\'écritur
         await expect(interventionService.completeIntervention(9, 42, { total_price: 50, is_paid: true })).rejects.toMatchObject({ status: 409 });
     });
 });
+
+describe('interventionService.getPlanning', () => {
+    it('transmet la période et les filtres au repository', async () => {
+        interventionRepository.findForPlanning.mockResolvedValue([{ intervention_id: 1 }]);
+
+        const result = await interventionService.getPlanning({ start: '2026-11-09', end: '2026-11-16', technician_id: 3, zone_id: undefined });
+
+        expect(interventionRepository.findForPlanning).toHaveBeenCalledWith({ start: '2026-11-09', end: '2026-11-16', technicianId: 3, zoneId: undefined });
+        expect(result).toEqual({ interventions: [{ intervention_id: 1 }] });
+    });
+});

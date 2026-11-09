@@ -1,3 +1,4 @@
+import { lazy, Suspense } from 'react'
 import { Routes, Route } from 'react-router-dom'
 import { ProtectedRoute } from './components/ProtectedRoute'
 import { PublicLayout } from './components/PublicLayout'
@@ -29,6 +30,8 @@ import { AdminTechniciens } from './pages/AdminTechniciens'
 import { ChangerMotDePasse } from './pages/ChangerMotDePasse'
 import { AdminUtilisateurs } from './pages/AdminUtilisateurs'
 
+const AdminPlanning = lazy(() => import('./pages/AdminPlanning').then(m => ({ default: m.AdminPlanning })))
+
 function App() {
   return (
     <Routes>
@@ -51,6 +54,7 @@ function App() {
             <Route path="/admin/produits" element={<AdminProduits />} />
             <Route path="/admin/techniciens" element={<AdminTechniciens />} />
             <Route path="/admin/utilisateurs" element={<AdminUtilisateurs />} />
+            <Route path="/admin/planning" element={<Suspense fallback={<p className="text-sm text-gray-600">Chargement du planning...</p>}><AdminPlanning /></Suspense>} />
           </Route>
         </Route>
         <Route element={<ClientLayout />}>

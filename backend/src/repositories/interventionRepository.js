@@ -271,7 +271,6 @@ export async function reassign(interventionId, { slotId, technicianId }, runner 
     return result.rows[0];
 }
 
-
 export async function cancelActiveByClientId(clientId, runner = pool) {
     const result = await runner.query(
         `UPDATE intervention SET state = 'annulée'
@@ -317,4 +316,38 @@ export async function anonymizeAddressesByClientId(clientId, runner = pool) {
          WHERE client_id = $1`,
         [clientId]
     );
+}
+
+export async function findForPlanning({ start, end, technicianId, zoneId }, runner = pool) {
+    const params = [start, end];
+    const conditions = ['s.day >= $1', 's.day < $2', "i.state != 'annulée'"];
+    if (technicianId) {
+        params.push(technicianId);
+        conditions.push(`i.technician_id = $${params.length}`);
+    }
+    if (zoneId) {
+        params.push(zoneId);
+        conditions.push(`s.zone_id = $${params.length}`);
+    }
+    const result = await runner.query(
+        `SELECT
+            i.intervention_id, i.state,
+            to_char(s.day + s.start_at, 'YYYY-MM-DD"T"HH24:MI:SS') AS start,
+            to_char(s.day + s.ended_at, 'YYYY-MM-DD"T"HH24:MI:SS') AS "end",
+            f.name_fee,
+            z.zone_id, z.name AS zone_name,
+            c.name AS client_name,
+            t.user_id AS technician_id, t.name AS technician_name,
+            i.address_city AS city
+         FROM intervention i
+         JOIN slot s ON s.slot_id = i.slot_id
+         JOIN zone z ON z.zone_id = s.zone_id
+         JOIN fee f ON f.fee_id = s.fee_id
+         JOIN "user" c ON c.user_id = i.client_id
+         LEFT JOIN "user" t ON t.user_id = i.technician_id
+         WHERE ${conditions.join(' AND ')}
+         ORDER BY s.day, s.start_at`,
+        params
+    );
+    return result.rows;
 }

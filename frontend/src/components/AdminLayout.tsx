@@ -10,6 +10,7 @@ export function AdminLayout() {
         { to: '/admin/produits', label: 'Produits' },
         { to: '/admin/techniciens', label: 'Techniciens' },
         { to: '/admin/utilisateurs', label: 'Utilisateurs' },
+        { to: '/admin/planning', label: 'Planning' },
     ];
 
     return (
