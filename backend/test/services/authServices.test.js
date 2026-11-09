@@ -123,3 +123,63 @@ it('token send pour valides identifiants', async () => {
     expect(result.user.email).toBe(baseUser.email);
 });
 });
+
+describe('authServices — mot de passe provisoire', () => {
+    const tempUser = { ...baseUser, role: 'technician', must_change_password: true, temp_password_expired: false };
+
+    it('refuse la connexion (403 TEMP_PASSWORD_EXPIRED) si le mot de passe provisoire a expiré', async () => {
+        userRepository.findByEmail.mockResolvedValue({ ...tempUser, temp_password_expired: true });
+        bcrypt.compare.mockResolvedValue(true);
+
+        await expect(authServices.login({ email: baseUser.email, password: 'Provisoire12' }))
+            .rejects.toMatchObject({ status: 403, appCode: 'TEMP_PASSWORD_EXPIRED' });
+    });
+
+    it('signale must_change_password à la connexion tant que le provisoire est valide', async () => {
+        userRepository.findByEmail.mockResolvedValue(tempUser);
+        bcrypt.compare.mockResolvedValue(true);
+
+        const result = await authServices.login({ email: baseUser.email, password: 'Provisoire12' });
+
+        expect(result.user.must_change_password).toBe(true);
+    });
+
+    it('refuse le changement si le mot de passe actuel est faux (400)', async () => {
+        userRepository.findById.mockResolvedValue(tempUser);
+        bcrypt.compare.mockResolvedValue(false);
+
+        await expect(authServices.changePassword(1, { currentPassword: 'faux', newPassword: 'NouveauMdp1' }))
+            .rejects.toMatchObject({ status: 400 });
+        expect(userRepository.updatePassword).not.toHaveBeenCalled();
+    });
+
+    it('refuse un nouveau mot de passe identique au provisoire (400)', async () => {
+        userRepository.findById.mockResolvedValue(tempUser);
+        bcrypt.compare.mockResolvedValue(true);
+
+        await expect(authServices.changePassword(1, { currentPassword: 'Provisoire12', newPassword: 'Provisoire12' }))
+            .rejects.toMatchObject({ status: 400 });
+    });
+
+    it('refuse le changement si le provisoire a expiré (403)', async () => {
+        userRepository.findById.mockResolvedValue({ ...tempUser, temp_password_expired: true });
+
+        await expect(authServices.changePassword(1, { currentPassword: 'Provisoire12', newPassword: 'NouveauMdp1' }))
+            .rejects.toMatchObject({ status: 403 });
+        expect(bcrypt.compare).not.toHaveBeenCalled();
+    });
+
+    it('enregistre le nouveau hash et lève le drapeau', async () => {
+        userRepository.findById.mockResolvedValue(tempUser);
+        bcrypt.compare.mockResolvedValue(true);
+        bcrypt.hash.mockResolvedValue('nouveau-hash');
+        userRepository.updatePassword.mockResolvedValue({ ...baseUser, role: 'technician', must_change_password: false });
+
+        const result = await authServices.changePassword(1, { currentPassword: 'Provisoire12', newPassword: 'NouveauMdp1' });
+
+        expect(userRepository.updatePassword).toHaveBeenCalledWith(1, 'nouveau-hash');
+        expect(result.user.must_change_password).toBe(false);
+        expect(result.token).toBe('fake_jwt_token');
+
+    });
+});

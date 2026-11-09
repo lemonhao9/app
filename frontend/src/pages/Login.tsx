@@ -31,7 +31,12 @@ export function Login() {
         return;
       }
       login(data.token, data.user);
+      if (data.user.must_change_password) {
+        navigate('/changer-mot-de-passe', { replace: true });
+        return;
+      }
       navigate(from && data.user.role === 'client' ? from : homePathForRole(data.user.role), { replace: true });
+
     } catch {
       setError('Une erreur est survenue. Veuillez réessayer plus tard.');
     } finally {

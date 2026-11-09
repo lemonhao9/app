@@ -1,13 +1,14 @@
 import { createContext, useContext, useEffect, useState, type ReactNode } from 'react';
 
 export interface User {
-  user_id: number;
-  email: string;
-  name: string;
-  role: 'admin' | 'technician' | 'client';
-  phone?: string | null;
-  picture?: string | null;
-  is_active: boolean;
+    user_id: number;
+    email: string;
+    name: string;
+    role: 'admin' | 'technician' | 'client';
+    phone?: string | null;
+    picture?: string | null;
+    is_active: boolean;
+    must_change_password?: boolean;
 }
 
 interface AuthContextValue {
@@ -31,7 +32,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
             return;
         }
         fetch('/api/v1/auth/me', {
-            headers: {Authorization: `Bearer ${token}`},
+            headers: { Authorization: `Bearer ${token}` },
         })
             .then(async (res) => {
                 if (!res.ok) {
@@ -56,18 +57,18 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         const token = localStorage.getItem('hch_token');
         localStorage.removeItem('hch_token');
         setUser(null);
-        if(token) {
+        if (token) {
             fetch('/api/v1/auth/logout', {
                 method: 'POST',
-                headers: {Authorization: `Bearer ${token}`},
-            }).catch(() => {});
+                headers: { Authorization: `Bearer ${token}` },
+            }).catch(() => { });
         }
     }
 
     function updateUser(updated: User) {
         setUser(updated);
     }
-    
+
     return (
         <AuthContext.Provider value={{ user, loading, login, logout, updateUser }}>
             {children}

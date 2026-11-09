@@ -26,6 +26,7 @@ import { AdminInterventions } from './pages/AdminInterventions'
 import { AdminForfaits } from './pages/AdminForfaits'
 import { AdminProduits } from './pages/AdminProduits'
 import { AdminTechniciens } from './pages/AdminTechniciens'
+import { ChangerMotDePasse } from './pages/ChangerMotDePasse'
 
 function App() {
   return (
@@ -60,6 +61,7 @@ function App() {
       </Route>
       <Route path="/login" element={<Login />} />
       <Route path="/signup" element={<Signup />} />
+      <Route path="/changer-mot-de-passe" element={<ChangerMotDePasse />} />
       <Route element={<ProtectedRoute roles={['technician']} />}>
         <Route element={<TechnicianLayout />}>
           <Route path="/technician/agenda" element={<AgendaJour />} />

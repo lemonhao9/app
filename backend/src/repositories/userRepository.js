@@ -1,12 +1,15 @@
 import pool, {query} from '../utils/db.js';
 
+const TEMP_PASSWORD_EXPIRED = `(temp_password_expires_at IS NOT NULL AND temp_password_expires_at <= now()) AS temp_password_expired`;
+const PASSWORD_CHANGED_EPOCH = `floor(extract(epoch FROM password_changed_at))::bigint AS password_changed_epoch`;
+
 export async function findByEmail(email) {
-    const results = await query('SELECT * FROM "user" WHERE email = $1', [email]);
+    const results = await query(`SELECT *, ${TEMP_PASSWORD_EXPIRED}, ${PASSWORD_CHANGED_EPOCH} FROM "user" WHERE email = $1`, [email]);
     return results.rows[0] ?? null;
 }
 
 export async function findById(userId) {
-    const results = await query('SELECT * FROM "user" WHERE user_id = $1', [userId]);
+    const results = await query(`SELECT *, ${TEMP_PASSWORD_EXPIRED}, ${PASSWORD_CHANGED_EPOCH} FROM "user" WHERE user_id = $1`, [userId]);
     return results.rows[0] ?? null;
 }
 
@@ -64,4 +67,15 @@ export async function findAll({role} = {}, runner = pool) {
         ? await runner.query('SELECT * FROM "user" WHERE role = $1 ORDER BY user_id', [role])
         : await runner.query('SELECT * FROM "user" ORDER BY user_id');
     return results.rows; 
+}
+
+export async function updatePassword(userId, passwordHash, runner = pool) {
+    const results = await runner.query(
+        `UPDATE "user"
+         SET password_hash = $2, must_change_password = FALSE, temp_password_expires_at = NULL, password_changed_at = now()
+         WHERE user_id = $1
+         RETURNING user_id, email, name, phone, role, picture, is_active, must_change_password`,
+        [userId, passwordHash]
+    );
+    return results.rows[0] ?? null;
 }

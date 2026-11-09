@@ -45,3 +45,11 @@ export async function createTechnician(data: { email: string; name: string; phon
         body: JSON.stringify(data),
     }));
 }
+
+export async function changePassword(data: { currentPassword: string; newPassword: string }): Promise<{ user: User; token: string }> {
+    return handle(await fetch(`${BASE}/auth/password`, {
+        method: 'PUT',
+        headers: { ...authHeaders(), 'Content-Type': 'application/json' },
+        body: JSON.stringify(data),
+    }));
+}

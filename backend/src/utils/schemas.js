@@ -119,3 +119,8 @@ export const technicianCreateSchema = z.object({
     name: z.string().trim().min(1).max(255),
     phone: z.string().trim().min(1).max(20).optional(),
 });
+
+export const passwordChangeSchema = z.object({
+    currentPassword: z.string().min(1),
+    newPassword: z.string().min(8, "Le mot de passe doit contenir au moins 8 caractères"),
+});
