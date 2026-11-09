@@ -27,6 +27,7 @@ import { AdminForfaits } from './pages/AdminForfaits'
 import { AdminProduits } from './pages/AdminProduits'
 import { AdminTechniciens } from './pages/AdminTechniciens'
 import { ChangerMotDePasse } from './pages/ChangerMotDePasse'
+import { AdminUtilisateurs } from './pages/AdminUtilisateurs'
 
 function App() {
   return (
@@ -49,6 +50,7 @@ function App() {
             <Route path="/admin/forfaits" element={<AdminForfaits />} />
             <Route path="/admin/produits" element={<AdminProduits />} />
             <Route path="/admin/techniciens" element={<AdminTechniciens />} />
+            <Route path="/admin/utilisateurs" element={<AdminUtilisateurs />} />
           </Route>
         </Route>
         <Route element={<ClientLayout />}>

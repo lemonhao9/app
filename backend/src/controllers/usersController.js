@@ -49,20 +49,24 @@ export async function updateProfile(req, res, next) {
     }
 }
 
-const roleQuerySchema = z.object({ role: z.enum(['client', 'technician']).optional() });
+const userListQuerySchema = z.object({
+    role: z.enum(['client', 'technician', 'admin']).optional(),
+    q: z.string().trim().max(100).optional().transform(v => v || undefined),
+    limit: z.coerce.number().int().positive().max(50).optional(),
+    offset: z.coerce.number().int().min(0).default(0),
+});
 export async function listUsers(req, res, next) {
-    const parsed = roleQuerySchema.safeParse(req.query);
+    const parsed = userListQuerySchema.safeParse(req.query);
     if (!parsed.success) {
         return res.status(400).json({error: parsed.error.flatten()});
     }
     try {
-        const users = await userService.listUsers(parsed.data.role);
-        res.json({users});
+        const result = await userService.listUsers(parsed.data);
+        res.json(result);
     } catch (err) {
         next(err);
     }
 }
-
 
 export async function listUserBikes(req, res, next) {
     try {

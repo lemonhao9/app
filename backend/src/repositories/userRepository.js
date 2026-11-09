@@ -62,11 +62,32 @@ export async function deleteAddresses(userId, runner = pool) {
     await runner.query(`DELETE FROM address WHERE user_id = $1`, [userId]);
 }
 
-export async function findAll({role} = {}, runner = pool) {
-    const results = role
-        ? await runner.query('SELECT * FROM "user" WHERE role = $1 ORDER BY user_id', [role])
-        : await runner.query('SELECT * FROM "user" ORDER BY user_id');
-    return results.rows; 
+export async function findAll({ role, q, limit, offset = 0 } = {}, runner = pool) {
+    const conditions = [];
+    const params = [];
+    if (role) {
+        params.push(role);
+        conditions.push(`role = $${params.length}`);
+    }
+    if (q) {
+        params.push(`%${q.replace(/[\\%_]/g, '\\$&')}%`);
+        conditions.push(`(name ILIKE $${params.length} OR email ILIKE $${params.length})`);
+    }
+    const where = conditions.length ? `WHERE ${conditions.join(' AND ')}` : '';
+    let pagination = '';
+    if (limit) {
+        params.push(limit + 1, offset);
+        pagination = `LIMIT $${params.length - 1} OFFSET $${params.length}`;
+    }
+    const results = await runner.query(
+        `SELECT user_id, email, name, phone, role, picture, is_active, must_change_password
+         FROM "user"
+         ${where}
+         ORDER BY name, user_id
+         ${pagination}`,
+        params
+    );
+    return results.rows;
 }
 
 export async function updatePassword(userId, passwordHash, runner = pool) {

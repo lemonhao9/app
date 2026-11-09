@@ -73,3 +73,20 @@ export async function regenerateTemporaryPassword(userId: number): Promise<Creat
         headers: authHeaders(),
     }));
 }
+
+export interface UserListItem {
+    user_id: number;
+    email: string;
+    name: string;
+    phone: string | null;
+    role: User['role'];
+    is_active: boolean;
+    must_change_password: boolean;
+}
+
+export async function listUsers(params: { role?: User['role']; q?: string; limit: number; offset: number }): Promise<{ users: UserListItem[]; hasMore: boolean }> {
+    const search = new URLSearchParams({ limit: String(params.limit), offset: String(params.offset) });
+    if (params.role) search.set('role', params.role);
+    if (params.q) search.set('q', params.q);
+    return handle(await fetch(`${BASE}/users?${search}`, { headers: authHeaders() }));
+}

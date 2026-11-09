@@ -143,10 +143,13 @@ export async function updateProfile(userId, data) {
     return toSafeUser(updated);
 }
 
-export async function listUsers(role) {
-    const users = await userRepository.findAll({ role });
-    return users.map(toSafeUser);
+export async function listUsers({ role, q, limit, offset } = {}) {
+    const rows = await userRepository.findAll({ role, q, limit, offset });
+    const hasMore = limit ? rows.length > limit : false;
+    const users = (limit ? rows.slice(0, limit) : rows).map(toSafeUser);
+    return { users, hasMore };
 }
+
 
 
 export async function listUserBikes(userId) {

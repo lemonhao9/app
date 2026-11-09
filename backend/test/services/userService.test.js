@@ -191,3 +191,34 @@ describe('userService.regenerateTemporaryPassword', () => {
         expect(result.user).toEqual({ user_id: 1, role: 'technician', must_change_password: true });
     });
 });
+
+describe('userService.listUsers', () => {
+    const row = (id) => ({ user_id: id, email: `u${id}@hch.fr`, name: `U${id}`, phone: null, role: 'client', picture: null, is_active: true, must_change_password: false });
+
+    it('sans limite, renvoie tout et hasMore à false', async () => {
+        userRepository.findAll.mockResolvedValue([row(1), row(2)]);
+
+        const result = await userService.listUsers({ role: 'client' });
+
+        expect(userRepository.findAll).toHaveBeenCalledWith({ role: 'client', q: undefined, limit: undefined, offset: undefined });
+        expect(result.users).toHaveLength(2);
+        expect(result.hasMore).toBe(false);
+    });
+
+    it('avec limite, retire la ligne en trop et signale hasMore', async () => {
+        userRepository.findAll.mockResolvedValue([row(1), row(2), row(3)]);
+
+        const result = await userService.listUsers({ q: 'u', limit: 2, offset: 0 });
+
+        expect(result.users.map(u => u.user_id)).toEqual([1, 2]);
+        expect(result.hasMore).toBe(true);
+    });
+
+    it("ne renvoie jamais le hash du mot de passe", async () => {
+        userRepository.findAll.mockResolvedValue([{ ...row(1), password_hash: 'hash' }]);
+
+        const result = await userService.listUsers();
+
+        expect(result.users[0]).not.toHaveProperty('password_hash');
+    });
+});

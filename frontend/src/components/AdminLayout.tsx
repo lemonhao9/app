@@ -9,6 +9,7 @@ export function AdminLayout() {
         { to: '/admin/forfaits', label: 'Forfaits' },
         { to: '/admin/produits', label: 'Produits' },
         { to: '/admin/techniciens', label: 'Techniciens' },
+        { to: '/admin/utilisateurs', label: 'Utilisateurs' },
     ];
 
     return (
