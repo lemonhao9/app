@@ -16,6 +16,15 @@ export async function createTechnician(req, res, next) {
     }
 }
 
+export async function regenerateTemporaryPassword(req, res, next) {
+    try {
+        const { user, temporaryPassword } = await userService.regenerateTemporaryPassword(Number(req.params.id));
+        res.set('Cache-Control', 'no-store');
+        res.json({ user, temporaryPassword });
+    } catch (err) {
+        next(err);
+    }
+}
 
 export async function deleteAccount(req, res, next) {
     try{

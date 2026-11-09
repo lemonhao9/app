@@ -15,6 +15,8 @@ router.get('/:id/bikes', authenticate, authorize('admin'), userController.listUs
 
 router.post('/technicians', authenticate, authorize('admin'), userController.createTechnician);
 
+router.post('/:id/temporary-password', authenticate, authorize('admin'), userController.regenerateTemporaryPassword);
+
 router.delete('/account', authenticate, authorize('client'), userController.deleteAccount);
 
 router.put('/me', authenticate, upload.single('picture'), userController.updateProfile);

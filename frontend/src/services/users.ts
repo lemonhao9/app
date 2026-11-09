@@ -53,3 +53,23 @@ export async function changePassword(data: { currentPassword: string; newPasswor
         body: JSON.stringify(data),
     }));
 }
+
+export interface TechnicianListItem {
+    user_id: number;
+    email: string;
+    name: string;
+    phone: string | null;
+    is_active: boolean;
+    must_change_password: boolean;
+}
+
+export async function getTechnicians(): Promise<{ users: TechnicianListItem[] }> {
+    return handle(await fetch(`${BASE}/users?role=technician`, { headers: authHeaders() }));
+}
+
+export async function regenerateTemporaryPassword(userId: number): Promise<CreatedTechnician> {
+    return handle(await fetch(`${BASE}/users/${userId}/temporary-password`, {
+        method: 'POST',
+        headers: authHeaders(),
+    }));
+}

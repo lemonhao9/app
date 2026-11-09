@@ -40,6 +40,29 @@ export async function createTechnician({ email, name, phone }) {
     }
 }
 
+export async function regenerateTemporaryPassword(userId) {
+    const user = await userRepository.findById(userId);
+    if (!user || user.role !== 'technician') {
+        const err = new Error('Technicien introuvable');
+        err.status = 404;
+        throw err;
+    }
+    if (!user.is_active) {
+        const err = new Error('Ce compte est désactivé : réactivez-le avant de générer un mot de passe provisoire');
+        err.status = 409;
+        throw err;
+    }
+    const temporaryPassword = generateTemporaryPassword();
+    const passwordHash = await bcrypt.hash(temporaryPassword, SALT_ROUNDS);
+    const updated = await userRepository.resetTemporaryPassword(userId, passwordHash);
+    if (!updated) {
+        const err = new Error('Technicien introuvable');
+        err.status = 404;
+        throw err;
+    }
+    return { user: updated, temporaryPassword };
+}
+
 export async function deleteAccount(userId) {
     const user = await userRepository.findById(userId);
     if (!user) {

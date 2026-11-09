@@ -79,3 +79,17 @@ export async function updatePassword(userId, passwordHash, runner = pool) {
     );
     return results.rows[0] ?? null;
 }
+
+export async function resetTemporaryPassword(userId, passwordHash, runner = pool) {
+    const results = await runner.query(
+        `UPDATE "user"
+         SET password_hash = $2,
+             must_change_password = TRUE,
+             temp_password_expires_at = now() + interval '72 hours',
+             password_changed_at = now()
+         WHERE user_id = $1 AND role = 'technician'
+         RETURNING user_id, email, name, phone, role, picture, is_active, must_change_password, temp_password_expires_at`,
+        [userId, passwordHash]
+    );
+    return results.rows[0] ?? null;
+}

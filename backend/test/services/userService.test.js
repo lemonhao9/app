@@ -156,3 +156,38 @@ describe('userService.createTechnician', () => {
         expect(passwords.size).toBe(50);
     });
 });
+
+describe('userService.regenerateTemporaryPassword', () => {
+    it("lève une 404 si l'utilisateur n'existe pas", async () => {
+        userRepository.findById.mockResolvedValue(null);
+
+        await expect(userService.regenerateTemporaryPassword(1)).rejects.toMatchObject({ status: 404 });
+        expect(userRepository.resetTemporaryPassword).not.toHaveBeenCalled();
+    });
+
+    it("lève une 404 si l'utilisateur n'est pas un technicien", async () => {
+        userRepository.findById.mockResolvedValue({ ...currentUser, role: 'client' });
+
+        await expect(userService.regenerateTemporaryPassword(1)).rejects.toMatchObject({ status: 404 });
+        expect(userRepository.resetTemporaryPassword).not.toHaveBeenCalled();
+    });
+
+    it('lève une 409 si le compte est désactivé', async () => {
+        userRepository.findById.mockResolvedValue({ ...currentUser, is_active: false });
+
+        await expect(userService.regenerateTemporaryPassword(1)).rejects.toMatchObject({ status: 409 });
+        expect(userRepository.resetTemporaryPassword).not.toHaveBeenCalled();
+    });
+
+    it('génère un nouveau provisoire, ne stocke que son hash et le renvoie une fois', async () => {
+        bcrypt.hash.mockResolvedValue('hashed-temp');
+        userRepository.resetTemporaryPassword.mockResolvedValue({ user_id: 1, role: 'technician', must_change_password: true });
+
+        const result = await userService.regenerateTemporaryPassword(1);
+
+        expect(result.temporaryPassword).toMatch(/^[A-HJ-NP-Za-km-z2-9]{12}$/);
+        expect(bcrypt.hash).toHaveBeenCalledWith(result.temporaryPassword, 12);
+        expect(userRepository.resetTemporaryPassword).toHaveBeenCalledWith(1, 'hashed-temp');
+        expect(result.user).toEqual({ user_id: 1, role: 'technician', must_change_password: true });
+    });
+});
