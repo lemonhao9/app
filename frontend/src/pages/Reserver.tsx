@@ -2,7 +2,7 @@ import { useEffect, useState } from "react";
 import { Link } from "react-router-dom";
 import { MapContainer, TileLayer, GeoJSON as GeoJsonLayer } from "react-leaflet";
 import { Button } from "@/components/ui/button";
-import { useAuth } from "@/context/AuthContext";
+import { useAuth } from '@/context/useAuth';
 
 interface Bike {
     bike_id: number;

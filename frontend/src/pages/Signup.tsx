@@ -4,8 +4,7 @@ import { AddressAutocomplete } from '@/components/AddressAutocomplete';
 import { useState, type SyntheticEvent } from 'react';
 import { Eye, EyeOff } from 'lucide-react';
 import { useNavigate, Link } from 'react-router-dom';
-import { useAuth } from '@/context/AuthContext';
-
+import { useAuth } from '@/context/useAuth';
 interface SelectedAddress {
   label: string;
   city: string;

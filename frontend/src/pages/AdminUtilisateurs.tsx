@@ -1,7 +1,8 @@
 import { useCallback, useEffect, useRef, useState, type SyntheticEvent } from 'react';
 import { Button } from '../components/ui/button';
 import { listUsers, updateUserByAdmin, deactivateUser, activateUser, type UserListItem } from '../services/users';
-import { useAuth, type User } from '../context/AuthContext';
+import { useAuth } from '../context/useAuth';
+import type { User } from '../context/AuthContext';
 
 const PAGE_SIZE = 20;
 const ROLE_LABELS: Record<User['role'], string> = {

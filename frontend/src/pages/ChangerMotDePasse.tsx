@@ -3,7 +3,7 @@ import { Navigate, useNavigate } from 'react-router-dom';
 import { Eye, EyeOff } from 'lucide-react';
 import { NavBar } from '../components/ui/NavBar';
 import { Button } from '../components/ui/button';
-import { useAuth } from '../context/AuthContext';
+import { useAuth } from '@/context/useAuth';
 import { changePassword } from '../services/users';
 import { homePathForRole } from '../lib/utils';
 

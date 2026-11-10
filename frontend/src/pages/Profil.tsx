@@ -1,6 +1,6 @@
 import { useState, type SyntheticEvent } from "react";
 import { Button } from "../components/ui/button";
-import { useAuth } from "../context/AuthContext";
+import { useAuth } from '@/context/useAuth';
 import { useNavigate } from "react-router-dom";
 import { AddressManager } from "../components/AddressManager";
 import { updateMe, deleteMyAccount } from "../services/users";

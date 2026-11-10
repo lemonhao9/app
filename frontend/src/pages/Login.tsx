@@ -2,7 +2,7 @@ import { NavBar } from '../components/ui/NavBar';
 import { Button } from '../components/ui/button';
 import { useState, type SyntheticEvent } from 'react';
 import { useNavigate, useLocation, Link } from 'react-router-dom';
-import { useAuth } from '../context/AuthContext';
+import { useAuth } from '@/context/useAuth';
 import { homePathForRole } from '../lib/utils';
 
 export function Login() {

@@ -2,7 +2,7 @@ import { useState } from 'react';
 import { Link, useNavigate } from "react-router-dom";
 import { Button } from './button';
 import { Menu, X, ChevronDown } from 'lucide-react';
-import { useAuth } from '@/context/AuthContext';
+import { useAuth } from '@/context/useAuth';
 import { homePathForRole } from '@/lib/utils';
 import logoSrc from '@/assets/LELOGOHCHwhite.svg'
 import logoSrcDark from '@/assets/LELOGOHCHblack.svg'

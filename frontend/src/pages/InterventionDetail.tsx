@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import { useParams, Link } from "react-router-dom";
 
 interface Photo {
@@ -68,7 +68,7 @@ export function InterventionDetail() {
     const [actionError, setActionError] = useState<string | null>(null);
     const [photoFiles, setPhotoFiles] = useState<File[]>([]);
 
-    function loadIntervention() {
+        const loadIntervention = useCallback(() => {
         const token = localStorage.getItem('hch_token');
         return fetch(`/api/v1/interventions/${id}`, {
             headers: { Authorization: `Bearer ${token}` },
@@ -79,14 +79,15 @@ export function InterventionDetail() {
                 setPrice(data.intervention.total_price ?? '');
                 setIsPaid(data.intervention.is_paid);
             });
-    }
+    }, [id]);
 
     useEffect(() => {
         setLoading(true);
         loadIntervention()
             .catch(() => setError("Impossible de charger cette intervention."))
             .finally(() => setLoading(false));
-    }, [id]);
+    }, [loadIntervention]);
+
 
     function handleStart() {
         const token = localStorage.getItem('hch_token');
