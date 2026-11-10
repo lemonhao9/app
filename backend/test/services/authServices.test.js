@@ -5,6 +5,7 @@ import * as userRepository from '../../src/repositories/userRepository.js';
 import * as authServices from '../../src/services/authServices.js';
 import * as addressRepository from '../../src/repositories/addressRepository.js';
 import * as zoneService from '../../src/services/zoneService.js';
+import * as addressService from '../../src/services/addressService.js';
 import * as db from '../../src/utils/db.js';
 
 vi.mock('bcryptjs');
@@ -12,6 +13,7 @@ vi.mock('jsonwebtoken');
 vi.mock('../../src/repositories/userRepository.js');
 vi.mock('../../src/repositories/addressRepository.js');
 vi.mock('../../src/services/zoneService.js');
+vi.mock('../../src/services/addressService.js');
 vi.mock('../../src/utils/db.js');
 
 const baseUser = {
@@ -30,6 +32,15 @@ beforeEach(() => {
     jwt.sign.mockReturnValue('fake_jwt_token');
 });
 
+const geocodedAddress = {
+    label: '10 Rue de la République 69001 Lyon',
+    city: 'Lyon',
+    postcode: '69001',
+    longitude: 4.8357,
+    latitude: 45.7676,
+};
+
+
 describe('authServices.signup', () => {
     it('Mail déjà utilisé (409)', async () => {
         userRepository.findByEmail.mockResolvedValue(baseUser);
@@ -37,24 +48,26 @@ describe('authServices.signup', () => {
         await expect(authServices.signup({email: baseUser.email, password: 'password123', name: 'Test Client'})).rejects.toMatchObject({status: 409});
     });
 
-    it('hashage du mdp + création du compte', async ()=> {
+        it('regéocode le libellé, hache le mot de passe et crée le compte avec les coordonnées officielles', async () => {
         const fakeClient = { query: vi.fn().mockResolvedValue({}), release: vi.fn() };
         db.getClient.mockResolvedValue(fakeClient);
         userRepository.findByEmail.mockResolvedValue(null);
+        addressService.geocodeExact.mockResolvedValue(geocodedAddress);
         bcrypt.hash.mockResolvedValue('hashedPassword');
         userRepository.create.mockResolvedValue(baseUser);
         addressRepository.create.mockResolvedValue({});
         zoneService.findZoneForPoint.mockResolvedValue(3);
 
-        const result = await authServices.signup ({
+        const result = await authServices.signup({
             email: baseUser.email,
             password: 'password123',
             name: baseUser.name,
-            address: { label: '10 rue de la Republique', city: 'Lyon', postal_code: '69000', longitude: '4.83', latitude: '45.76' }
+            address: { label: geocodedAddress.label },
         });
 
+        expect(addressService.geocodeExact).toHaveBeenCalledWith(geocodedAddress.label);
         expect(bcrypt.hash).toHaveBeenCalledWith('password123', 12);
-        expect(zoneService.findZoneForPoint).toHaveBeenCalledWith('45.76', '4.83');
+        expect(zoneService.findZoneForPoint).toHaveBeenCalledWith(45.7676, 4.8357);
         expect(userRepository.create).toHaveBeenCalledWith({
             email: baseUser.email,
             passwordHash: 'hashedPassword',
@@ -62,17 +75,53 @@ describe('authServices.signup', () => {
             phone: null
         }, fakeClient);
         expect(addressRepository.create).toHaveBeenCalledWith(
-            expect.objectContaining({ zoneId: 3 }),
+            expect.objectContaining({
+                addressName: geocodedAddress.label,
+                city: 'Lyon',
+                postalCode: '69001',
+                longitude: 4.8357,
+                latitude: 45.7676,
+                zoneId: 3,
+            }),
             fakeClient
         );
         expect(result.token).toBe('fake_jwt_token');
         expect(result.user).not.toHaveProperty('passwordHash');
     });
 
+    it("refuse l'inscription (502) sans créer de compte si la BAN est indisponible", async () => {
+        userRepository.findByEmail.mockResolvedValue(null);
+        addressService.geocodeExact.mockRejectedValue(Object.assign(new Error('Service de géocodage indisponible'), { status: 502 }));
+
+        await expect(authServices.signup({
+            email: baseUser.email,
+            password: 'password123',
+            name: baseUser.name,
+            address: { label: geocodedAddress.label },
+        })).rejects.toMatchObject({ status: 502 });
+
+        expect(db.getClient).not.toHaveBeenCalled();
+        expect(userRepository.create).not.toHaveBeenCalled();
+    });
+
+    it("n'appelle pas la BAN si l'e-mail est déjà utilisé", async () => {
+        userRepository.findByEmail.mockResolvedValue(baseUser);
+
+        await expect(authServices.signup({
+            email: baseUser.email,
+            password: 'password123',
+            name: baseUser.name,
+            address: { label: geocodedAddress.label },
+        })).rejects.toMatchObject({ status: 409 });
+
+        expect(addressService.geocodeExact).not.toHaveBeenCalled();
+    });
+
     it('convertit une violation 23505 (race condition) en 409 propre', async () => {
         const fakeClient = { query: vi.fn().mockResolvedValue({}), release: vi.fn() };
         db.getClient.mockResolvedValue(fakeClient);
-        userRepository.findByEmail.mockResolvedValue(null);
+                userRepository.findByEmail.mockResolvedValue(null);
+        addressService.geocodeExact.mockResolvedValue(geocodedAddress);
         bcrypt.hash.mockResolvedValue('hashedPassword');
         zoneService.findZoneForPoint.mockResolvedValue(3);
         const dbError = new Error('duplicate key value violates unique constraint');

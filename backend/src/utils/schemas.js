@@ -9,18 +9,14 @@ export const userSchema = z.object({
 export const signupSchema = userSchema.extend({
     phone: z.string().trim().min(1).max(20).optional(),
     address: z.object({
-        label: z.string().min(1),
-        city: z.string().min(1),
-        postcode: z.string().min(1),
-        longitude: z.number(),
-        latitude: z.number(),
+        label: z.string().trim().min(1).max(255),
     }),
 });
 
 export const bikeSchema = z.object({
     brand: z.string().trim().min(1).max(255).optional(),
     model: z.string().trim().min(1).max(255).optional(),
-    year: z.coerce.number().int().min(1900).max(new Date().getFullYear()+1).optional(),
+    year: z.coerce.number().int().min(1900).max(new Date().getFullYear() + 1).optional(),
     bike_type: z.enum(['VTT', 'VTC', 'Route', 'Ville', 'Pliant', 'BMX', 'Enfant', 'Cargo-Triporteur']).optional(),
     is_electric: z.enum(['true', 'false']).transform(val => val === 'true').optional(),
 });
@@ -43,12 +39,12 @@ export const zoneSchema = z.object({
     latitude: z.number().optional(),
     longitude: z.number().optional(),
     geojson: z.object({
-    type: z.literal('Feature'),
-    geometry: z.object({
-        type: z.literal('Polygon'),
-        coordinates: z.array(z.array(z.tuple([z.number(), z.number()]))),
-    }),
-}).passthrough(),
+        type: z.literal('Feature'),
+        geometry: z.object({
+            type: z.literal('Polygon'),
+            coordinates: z.array(z.array(z.tuple([z.number(), z.number()]))),
+        }),
+    }).passthrough(),
 
 });
 
