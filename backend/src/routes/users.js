@@ -11,6 +11,8 @@ router.param('id', validateIdParam);
 
 router.get('/', authenticate, authorize('admin'), userController.listUsers);
 
+router.get('/clients', authenticate, authorize('admin'), userController.listClients);
+
 router.get('/:id/bikes', authenticate, authorize('admin'), userController.listUserBikes);
 
 router.post('/technicians', authenticate, authorize('admin'), userController.createTechnician);

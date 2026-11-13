@@ -224,7 +224,23 @@ export async function listUsers({ role, q, limit, offset } = {}) {
     return { users, hasMore };
 }
 
-
+export async function listClients(filters) {
+    const rows = await userRepository.findClients(filters);
+    return {
+        total: rows[0]?.total ?? 0,
+        clients: rows.map(row => ({
+            user_id: row.user_id,
+            email: row.email,
+            name: row.name,
+            phone: row.phone,
+            is_active: row.is_active,
+            is_deleted: row.deleted_at != null,
+            address_name: row.address_name,
+            zone_name: row.zone_name,
+            bike_count: row.bike_count,
+        })),
+    };
+}
 
 export async function listUserBikes(userId) {
     const user = await userRepository.findById(userId);

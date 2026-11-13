@@ -1,6 +1,6 @@
 import {z} from 'zod';
 import * as userService from '../services/userService.js';
-import { technicianCreateSchema, userUpdateSchema, adminUserUpdateSchema } from '../utils/schemas.js';
+import { technicianCreateSchema, userUpdateSchema, adminUserUpdateSchema, clientListQuerySchema } from '../utils/schemas.js';
 
 export async function createTechnician(req, res, next) {
     const parsed = technicianCreateSchema.safeParse(req.body);
@@ -62,6 +62,20 @@ export async function listUsers(req, res, next) {
     }
     try {
         const result = await userService.listUsers(parsed.data);
+        res.json(result);
+    } catch (err) {
+        next(err);
+    }
+}
+
+export async function listClients(req, res, next) {
+    const parsed = clientListQuerySchema.safeParse(req.query);
+    if (!parsed.success) {
+        return res.status(400).json({ error: parsed.error.flatten() });
+    }
+    try {
+        const { zone_id: zoneIds, ...filters } = parsed.data;
+        const result = await userService.listClients({ ...filters, zoneIds });
         res.json(result);
     } catch (err) {
         next(err);

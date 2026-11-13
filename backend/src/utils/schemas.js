@@ -141,3 +141,14 @@ export const planningQuerySchema = z.object({
     message: 'Période limitée à 42 jours',
     path: ['end'],
 });
+
+const toArray = value => (value === undefined || value === '' ? undefined : [].concat(value));
+
+export const clientListQuerySchema = z.object({
+    status: z.enum(['active', 'inactive', 'deleted']).optional(),
+    q: z.string().trim().max(100).optional().transform(v => v || undefined),
+    address: z.string().trim().max(100).optional().transform(v => v || undefined),
+    zone_id: z.preprocess(toArray, z.array(z.coerce.number().int().positive()).max(50).optional()),
+    limit: z.coerce.number().int().positive().max(50).default(20),
+    offset: z.coerce.number().int().min(0).default(0),
+}).strict();

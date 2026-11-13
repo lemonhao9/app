@@ -223,6 +223,38 @@ describe('userService.listUsers', () => {
     });
 });
 
+describe('userService.listClients', () => {
+    const row = (id, extra = {}) => ({ user_id: id, email: `c${id}@hch.fr`, name: `C${id}`, phone: null, is_active: true, deleted_at: null, address_name: null, zone_name: null, bike_count: 0, total: 3, ...extra });
+
+    it('renvoie le total sans le répéter dans chaque ligne', async () => {
+        userRepository.findClients.mockResolvedValue([row(1), row(2)]);
+
+        const result = await userService.listClients({ limit: 20, offset: 0 });
+
+        expect(result.total).toBe(3);
+        expect(result.clients).toHaveLength(2);
+        expect(result.clients[0]).not.toHaveProperty('total');
+    });
+
+    it('renvoie un total à 0 quand aucun client ne correspond', async () => {
+        userRepository.findClients.mockResolvedValue([]);
+
+        const result = await userService.listClients({ limit: 20, offset: 0 });
+
+        expect(result).toEqual({ total: 0, clients: [] });
+    });
+
+    it('signale un compte supprimé sans exposer deleted_at ni le hash', async () => {
+        userRepository.findClients.mockResolvedValue([row(1, { is_active: false, deleted_at: new Date(), password_hash: 'hash' })]);
+
+        const result = await userService.listClients({ limit: 20, offset: 0 });
+
+        expect(result.clients[0].is_deleted).toBe(true);
+        expect(result.clients[0]).not.toHaveProperty('deleted_at');
+        expect(result.clients[0]).not.toHaveProperty('password_hash');
+    });
+});
+
 describe('userService.updateUserByAdmin', () => {
     it('lève une 409 sur un compte supprimé', async () => {
         userRepository.findById.mockResolvedValue({ ...currentUser, is_active: false, deleted_at: new Date() });

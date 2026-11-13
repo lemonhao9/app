@@ -107,3 +107,26 @@ export async function deactivateUser(userId: number): Promise<{ user: UserListIt
 export async function activateUser(userId: number): Promise<{ user: UserListItem }> {
     return handle(await fetch(`${BASE}/users/${userId}/activate`, { method: 'PATCH', headers: authHeaders() }));
 }
+
+export type ClientStatus = 'active' | 'inactive' | 'deleted';
+
+export interface ClientListItem {
+    user_id: number;
+    email: string;
+    name: string;
+    phone: string | null;
+    is_active: boolean;
+    is_deleted: boolean;
+    address_name: string | null;
+    zone_name: string | null;
+    bike_count: number;
+}
+
+export async function listClients(params: { status?: ClientStatus; q?: string; address?: string; zoneIds: number[]; limit: number; offset: number }): Promise<{ clients: ClientListItem[]; total: number }> {
+    const search = new URLSearchParams({ limit: String(params.limit), offset: String(params.offset) });
+    if (params.status) search.set('status', params.status);
+    if (params.q) search.set('q', params.q);
+    if (params.address) search.set('address', params.address);
+    for (const zoneId of params.zoneIds) search.append('zone_id', String(zoneId));
+    return handle(await fetch(`${BASE}/users/clients?${search}`, { headers: authHeaders() }));
+}

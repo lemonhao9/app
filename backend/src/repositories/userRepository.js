@@ -63,7 +63,12 @@ export async function deleteAddresses(userId, runner = pool) {
     await runner.query(`DELETE FROM address WHERE user_id = $1`, [userId]);
 }
 
+function likePattern(value) {
+    return `%${value.replace(/[\\%_]/g, '\\$&')}%`;
+}
+
 export async function findAll({ role, q, limit, offset = 0 } = {}, runner = pool) {
+
     const conditions = [];
     const params = [];
     if (role) {
@@ -71,7 +76,7 @@ export async function findAll({ role, q, limit, offset = 0 } = {}, runner = pool
         conditions.push(`role = $${params.length}`);
     }
     if (q) {
-        params.push(`%${q.replace(/[\\%_]/g, '\\$&')}%`);
+        params.push(likePattern(q));
         conditions.push(`(name ILIKE $${params.length} OR email ILIKE $${params.length})`);
     }
     const where = conditions.length ? `WHERE ${conditions.join(' AND ')}` : '';
@@ -86,6 +91,53 @@ export async function findAll({ role, q, limit, offset = 0 } = {}, runner = pool
          ${where}
          ORDER BY name, user_id
          ${pagination}`,
+        params
+    );
+    return results.rows;
+}
+
+export async function findClients({ status, q, address, zoneIds, limit, offset }, runner = pool) {
+    const conditions = [`u.role = 'client'`];
+    const params = [];
+    if (status === 'active') {
+        conditions.push('u.is_active AND u.deleted_at IS NULL');
+    } else if (status === 'inactive') {
+        conditions.push('NOT u.is_active AND u.deleted_at IS NULL');
+    } else if (status === 'deleted') {
+        conditions.push('u.deleted_at IS NOT NULL');
+    }
+    if (q) {
+        params.push(likePattern(q));
+        const n = params.length;
+        conditions.push(`(u.name ILIKE $${n} OR u.email ILIKE $${n} OR u.phone ILIKE $${n})`);
+    }
+    if (address) {
+        params.push(likePattern(address));
+        const n = params.length;
+        conditions.push(`EXISTS (SELECT 1 FROM address ad WHERE ad.user_id = u.user_id
+                         AND (ad.address_name ILIKE $${n} OR ad.city ILIKE $${n} OR ad.postal_code ILIKE $${n}))`);
+    }
+    if (zoneIds?.length) {
+        params.push(zoneIds);
+        conditions.push(`EXISTS (SELECT 1 FROM address ad WHERE ad.user_id = u.user_id AND ad.zone_id = ANY($${params.length}::int[]))`);
+    }
+    params.push(limit, offset);
+    const results = await runner.query(
+        `SELECT u.user_id, u.email, u.name, u.phone, u.is_active, u.deleted_at,
+                a.address_name, z.name AS zone_name,
+                (SELECT count(*) FROM bike b WHERE b.user_id = u.user_id)::int AS bike_count,
+                count(*) OVER()::int AS total
+         FROM "user" u
+         LEFT JOIN LATERAL (
+             SELECT address_name, zone_id FROM address
+             WHERE address.user_id = u.user_id
+             ORDER BY is_default DESC, address_id
+             LIMIT 1
+         ) a ON true
+         LEFT JOIN zone z ON z.zone_id = a.zone_id
+         WHERE ${conditions.join(' AND ')}
+         ORDER BY u.name, u.user_id
+         LIMIT $${params.length - 1} OFFSET $${params.length}`,
         params
     );
     return results.rows;
