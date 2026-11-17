@@ -1,5 +1,6 @@
 import { BASE, authHeaders, handle } from './http';
 import type { User } from '../context/AuthContext';
+import type { Address } from './addresses';
 
 export interface ClientOption {
     user_id: number;
@@ -129,4 +130,24 @@ export async function listClients(params: { status?: ClientStatus; q?: string; a
     if (params.address) search.set('address', params.address);
     for (const zoneId of params.zoneIds) search.append('zone_id', String(zoneId));
     return handle(await fetch(`${BASE}/users/clients?${search}`, { headers: authHeaders() }));
+}
+
+export interface ClientBike {
+    bike_id: number;
+    brand: string | null;
+    model: string | null;
+    year: number | null;
+    bike_type: string | null;
+    is_electric: boolean;
+    photo: string | null;
+}
+
+export interface ClientDetails {
+    client: User & { is_deleted: boolean };
+    addresses: Address[];
+    bikes: ClientBike[];
+}
+
+export async function getClientDetails(userId: number): Promise<ClientDetails> {
+    return handle(await fetch(`${BASE}/users/clients/${userId}`, { headers: authHeaders() }));
 }

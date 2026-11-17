@@ -3,6 +3,7 @@ import bcrypt from 'bcryptjs';
 import * as userRepository from '../../src/repositories/userRepository.js';
 import * as bikeRepository from '../../src/repositories/bikeRepository.js';
 import * as interventionRepository from '../../src/repositories/interventionRepository.js';
+import * as addressRepository from '../../src/repositories/addressRepository.js';
 import * as db from '../../src/utils/db.js';
 import * as fileStorage from '../../src/utils/fileStorage.js';
 import * as userService from '../../src/services/userService.js';
@@ -10,6 +11,7 @@ import * as userService from '../../src/services/userService.js';
 vi.mock('../../src/repositories/userRepository.js');
 vi.mock('../../src/repositories/bikeRepository.js');
 vi.mock('../../src/repositories/interventionRepository.js');
+vi.mock('../../src/repositories/addressRepository.js');
 vi.mock('../../src/utils/db.js');
 vi.mock('../../src/utils/fileStorage.js');
 vi.mock('bcryptjs');
@@ -252,6 +254,37 @@ describe('userService.listClients', () => {
         expect(result.clients[0].is_deleted).toBe(true);
         expect(result.clients[0]).not.toHaveProperty('deleted_at');
         expect(result.clients[0]).not.toHaveProperty('password_hash');
+    });
+});
+
+describe('userService.getClientDetails', () => {
+    const client = { ...currentUser, user_id: 6, role: 'client', deleted_at: null };
+
+    it('renvoie le client, ses adresses et ses vélos', async () => {
+        userRepository.findById.mockResolvedValue(client);
+        addressRepository.findByUserId.mockResolvedValue([{ address_id: 1 }]);
+        bikeRepository.findByUserId.mockResolvedValue([{ bike_id: 2 }]);
+
+        const result = await userService.getClientDetails(6);
+
+        expect(result.client.user_id).toBe(6);
+        expect(result.client).not.toHaveProperty('password_hash');
+        expect(result.addresses).toEqual([{ address_id: 1 }]);
+        expect(result.bikes).toEqual([{ bike_id: 2 }]);
+    });
+
+    it('lève une 404 si le compte est inconnu', async () => {
+        userRepository.findById.mockResolvedValue(null);
+
+        await expect(userService.getClientDetails(99)).rejects.toMatchObject({ status: 404 });
+        expect(addressRepository.findByUserId).not.toHaveBeenCalled();
+    });
+
+    it("lève une 404 si le compte n'est pas un client", async () => {
+        userRepository.findById.mockResolvedValue({ ...client, role: 'technician' });
+
+        await expect(userService.getClientDetails(6)).rejects.toMatchObject({ status: 404 });
+        expect(bikeRepository.findByUserId).not.toHaveBeenCalled();
     });
 });
 

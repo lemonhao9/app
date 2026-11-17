@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
+import { Link } from 'react-router-dom';
 import { Button } from '../components/ui/button';
 import { listClients, type ClientListItem, type ClientStatus } from '../services/users';
 import { getZones, type Zone } from '../services/zones';
@@ -151,7 +152,8 @@ export function AdminClients() {
                                 <th className="py-2 pr-3 font-medium">Zone</th>
                                 <th className="py-2 pr-3 font-medium">Adresse</th>
                                 <th className="py-2 pr-3 font-medium">Téléphone</th>
-                                <th className="py-2 font-medium">E-mail</th>
+                                <th className="py-2 pr-3 font-medium">E-mail</th>
+                                <th className="py-2 font-medium"><span className="sr-only">Fiche</span></th>
                             </tr>
                         </thead>
                         <tbody>
@@ -171,7 +173,10 @@ export function AdminClients() {
                                     <td className="py-2 pr-3">{c.zone_name ?? '—'}</td>
                                     <td className="py-2 pr-3">{c.address_name ?? '—'}</td>
                                     <td className="py-2 pr-3">{c.phone ?? '—'}</td>
-                                    <td className="py-2">{c.email}</td>
+                                    <td className="py-2 pr-3">{c.email}</td>
+                                    <td className="py-2 text-right">
+                                    <Link to={`/admin/clients/${c.user_id}`} className="text-blue-700 hover:underline">Fiche</Link>
+                                    </td>
                                 </tr>
                             ))}
                         </tbody>

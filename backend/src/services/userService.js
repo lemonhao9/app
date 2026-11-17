@@ -6,6 +6,7 @@ import { toSafeUser } from './authServices.js'
 import { getClient } from '../utils/db.js'
 import * as bikeRepository from '../repositories/bikeRepository.js';
 import * as interventionRepository from '../repositories/interventionRepository.js';
+import * as addressRepository from '../repositories/addressRepository.js';
 
 const SALT_ROUNDS = 12;
 const TEMP_PASSWORD_ALPHABET = 'ABCDEFGHJKLMNPQRSTUVWXYZabcdefghijkmnpqrstuvwxyz23456789';
@@ -240,6 +241,20 @@ export async function listClients(filters) {
             bike_count: row.bike_count,
         })),
     };
+}
+
+export async function getClientDetails(userId) {
+    const user = await userRepository.findById(userId);
+    if (!user || user.role !== 'client') {
+        const err = new Error('Client introuvable');
+        err.status = 404;
+        throw err;
+    }
+    const [addresses, bikes] = await Promise.all([
+        addressRepository.findByUserId(userId),
+        bikeRepository.findByUserId(userId),
+    ]);
+    return { client: toSafeUser(user), addresses, bikes };
 }
 
 export async function listUserBikes(userId) {

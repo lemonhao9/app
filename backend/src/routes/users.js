@@ -13,6 +13,8 @@ router.get('/', authenticate, authorize('admin'), userController.listUsers);
 
 router.get('/clients', authenticate, authorize('admin'), userController.listClients);
 
+router.get('/clients/:id', authenticate, authorize('admin'), userController.getClientDetails);
+
 router.get('/:id/bikes', authenticate, authorize('admin'), userController.listUserBikes);
 
 router.post('/technicians', authenticate, authorize('admin'), userController.createTechnician);

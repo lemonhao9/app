@@ -82,6 +82,15 @@ export async function listClients(req, res, next) {
     }
 }
 
+export async function getClientDetails(req, res, next) {
+    try {
+        const details = await userService.getClientDetails(Number(req.params.id));
+        res.json(details);
+    } catch (err) {
+        next(err);
+    }
+}
+
 export async function listUserBikes(req, res, next) {
     try {
         const bikes = await userService.listUserBikes(Number(req.params.id));

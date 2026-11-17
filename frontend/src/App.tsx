@@ -30,6 +30,7 @@ import { AdminTechniciens } from './pages/AdminTechniciens'
 import { ChangerMotDePasse } from './pages/ChangerMotDePasse'
 import { AdminUtilisateurs } from './pages/AdminUtilisateurs'
 import { AdminClients } from './pages/AdminClients'
+import { AdminClientDetail } from './pages/AdminClientDetail'
 
 const AdminPlanning = lazy(() => import('./pages/AdminPlanning').then(m => ({ default: m.AdminPlanning })))
 
@@ -56,6 +57,7 @@ function App() {
             <Route path="/admin/techniciens" element={<AdminTechniciens />} />
             <Route path="/admin/utilisateurs" element={<AdminUtilisateurs />} />
             <Route path="/admin/clients" element={<AdminClients />} />
+            <Route path="/admin/clients/:id" element={<AdminClientDetail />} />
             <Route path="/admin/planning" element={<Suspense fallback={<p className="text-sm text-gray-600">Chargement du planning...</p>}><AdminPlanning /></Suspense>} />
           </Route>
         </Route>
