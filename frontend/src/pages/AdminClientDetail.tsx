@@ -1,7 +1,7 @@
-import { useCallback, useEffect, useState } from 'react';
+import { useCallback, useEffect, useState, type SyntheticEvent } from 'react';
 import { Link, useParams } from 'react-router-dom';
 import { Button } from '../components/ui/button';
-import { getClientDetails, type ClientDetails } from '../services/users';
+import { getClientDetails, updateUserByAdmin, type ClientDetails } from '../services/users';
 import { getAllInterventions, type InterventionListItem } from '../services/interventions';
 
 const HISTORY_PAGE_SIZE = 10;
@@ -27,6 +27,10 @@ export function AdminClientDetail() {
     const [hasMore, setHasMore] = useState(false);
     const [historyLoading, setHistoryLoading] = useState(false);
     const [historyError, setHistoryError] = useState<string | null>(null);
+    const [editing, setEditing] = useState(false);
+    const [form, setForm] = useState({ name: '', email: '', phone: '' });
+    const [saving, setSaving] = useState(false);
+    const [saveError, setSaveError] = useState<string | null>(null);
 
     useEffect(() => {
         if (invalidId) return;
@@ -52,8 +56,34 @@ export function AdminClientDetail() {
     }, [clientId]);
 
     useEffect(() => {
-        if (!invalidId) loadHistory(0);
+                if (!invalidId) loadHistory(0);
     }, [invalidId, loadHistory]);
+
+    function startEdit() {
+        if (!details) return;
+        setForm({ name: details.client.name, email: details.client.email, phone: details.client.phone ?? '' });
+        setSaveError(null);
+        setEditing(true);
+    }
+
+    async function handleSave(e: SyntheticEvent<HTMLFormElement>) {
+        e.preventDefault();
+        setSaving(true);
+        setSaveError(null);
+        try {
+            const { user } = await updateUserByAdmin(clientId, {
+                name: form.name.trim(),
+                email: form.email.trim(),
+                phone: form.phone.trim(),
+            });
+            setDetails(prev => (prev ? { ...prev, client: { ...prev.client, ...user } } : prev));
+            setEditing(false);
+        } catch (err) {
+            setSaveError((err as Error).message);
+        } finally {
+            setSaving(false);
+        }
+    }
 
     const backLink = <Link to="/admin/clients" className="text-sm text-gray-600 hover:underline">← Retour aux clients</Link>;
 
@@ -91,14 +121,41 @@ export function AdminClientDetail() {
                 <p className="text-sm text-gray-600">Ce compte a été supprimé à la demande du client : seules les données conservées pour l'historique des interventions sont affichées.</p>
             )}
 
-            <section className="bg-white border rounded-md p-4">
-                <h2 className="font-medium mb-3">Informations</h2>
-                <dl className="grid grid-cols-[max-content_1fr] gap-x-6 gap-y-2 text-sm">
-                    <dt className="text-gray-600">E-mail</dt>
-                    <dd>{client.email}</dd>
-                    <dt className="text-gray-600">Téléphone</dt>
-                    <dd>{client.phone ?? '—'}</dd>
-                </dl>
+                        <section className="bg-white border rounded-md p-4">
+                <div className="flex items-center justify-between mb-3">
+                    <h2 className="font-medium">Informations</h2>
+                    {!client.is_deleted && !editing && (
+                        <Button size="sm" variant="outline" onClick={startEdit}>Modifier</Button>
+                    )}
+                </div>
+                {editing ? (
+                    <form onSubmit={handleSave} className="flex flex-col gap-3 max-w-xl">
+                        <div className="flex flex-col gap-1">
+                            <label htmlFor="client-name" className="text-sm font-medium">Nom</label>
+                            <input id="client-name" value={form.name} onChange={e => setForm(f => ({ ...f, name: e.target.value }))} required maxLength={255} className="border border-gray-300 rounded-md px-3 py-2 text-sm" />
+                        </div>
+                        <div className="flex flex-col gap-1">
+                            <label htmlFor="client-email" className="text-sm font-medium">Adresse e-mail</label>
+                            <input id="client-email" type="email" value={form.email} onChange={e => setForm(f => ({ ...f, email: e.target.value }))} required maxLength={255} className="border border-gray-300 rounded-md px-3 py-2 text-sm" />
+                        </div>
+                        <div className="flex flex-col gap-1">
+                            <label htmlFor="client-phone" className="text-sm font-medium">Téléphone (vide pour l'effacer)</label>
+                            <input id="client-phone" value={form.phone} onChange={e => setForm(f => ({ ...f, phone: e.target.value }))} maxLength={20} className="border border-gray-300 rounded-md px-3 py-2 text-sm" />
+                        </div>
+                        {saveError && <p className="text-sm text-red-600">{saveError}</p>}
+                        <div className="flex gap-2">
+                            <Button type="submit" disabled={saving}>{saving ? 'Enregistrement...' : 'Enregistrer'}</Button>
+                            <Button type="button" variant="outline" onClick={() => setEditing(false)} disabled={saving}>Annuler</Button>
+                        </div>
+                    </form>
+                ) : (
+                    <dl className="grid grid-cols-[max-content_1fr] gap-x-6 gap-y-2 text-sm">
+                        <dt className="text-gray-600">E-mail</dt>
+                        <dd>{client.email}</dd>
+                        <dt className="text-gray-600">Téléphone</dt>
+                        <dd>{client.phone ?? '—'}</dd>
+                    </dl>
+                )}
             </section>
 
             <section className="bg-white border rounded-md p-4">
