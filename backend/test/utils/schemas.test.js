@@ -72,3 +72,11 @@ describe('companyUpdateSchema', () => {
         expect(companyUpdateSchema.safeParse({ ...valid, company_id: 2 }).success).toBe(false);
     });
 });
+
+describe('messages de validation', () => {
+    it('sont en français (z.config(z.locales.fr()))', () => {
+        const result = companyUpdateSchema.safeParse({});
+        expect(result.success).toBe(false);
+        expect(result.error.flatten().fieldErrors.name[0]).toMatch(/Entrée invalide/);
+    });
+});
