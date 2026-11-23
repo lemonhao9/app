@@ -1,4 +1,7 @@
+import { useCompany } from '../context/useCompany';
+
 export function Confidentialite() {
+    const { company } = useCompany();
     return (
         <div className="min-h-screen bg-gray-100">
             <main className="w-full max-w-3xl mx-auto px-6 pt-24 pb-16 flex flex-col gap-8">
@@ -7,7 +10,7 @@ export function Confidentialite() {
                 <section className="flex flex-col gap-2">
                     <h2 className="font-bold text-sm uppercase tracking-wide">Responsable de traitement</h2>
                     <p className="text-sm text-gray-600">
-                        LeCycleLyonnais est responsable du traitement des données personnelles collectées via le
+                        {company.name} est responsable du traitement des données personnelles collectées via le
                         site Home Cycl'Home.
                     </p>
                 </section>
@@ -32,7 +35,7 @@ export function Confidentialite() {
                 <section className="flex flex-col gap-2">
                     <h2 className="font-bold text-sm uppercase tracking-wide">Destinataires</h2>
                     <p className="text-sm text-gray-600">
-                        Seule l'équipe LeCycleLyonnais et le technicien assigné à une intervention ont accès aux
+                        Seule l'équipe {company.name} et le technicien assigné à une intervention ont accès aux
                         données nécessaires à son bon déroulement. Aucune donnée n'est cédée à des tiers commerciaux.
                     </p>
                 </section>
@@ -50,7 +53,7 @@ export function Confidentialite() {
                     <p className="text-sm text-gray-600">
                         Vous disposez d'un droit d'accès, de rectification et d'effacement de vos données. La
                         suppression de votre compte entraîne son anonymisation définitive. Pour exercer ces droits,
-                        contactez-nous à <a href="mailto:contact@homecyclhome.fr" className="underline">contact@homecyclhome.fr</a>.
+                        contactez-nous à <a href={`mailto:${company.email}`} className="underline">{company.email}</a>.
                     </p>
                 </section>
 

@@ -1,4 +1,7 @@
+import { useCompany } from '../context/useCompany';
+
 export function CGV() {
+    const { company } = useCompany();
     return (
         <div className="min-h-screen bg-gray-100">
             <main className="w-full max-w-3xl mx-auto px-6 pt-24 pb-16 flex flex-col gap-8">
@@ -9,7 +12,7 @@ export function CGV() {
                     <p className="text-sm text-gray-600">
                         Les présentes conditions régissent les prestations d'entretien et de réparation de vélos et
                         vélos à assistance électrique (VAE) à domicile, ainsi que la vente de produits additionnels
-                        proposées par LeCycleLyonnais via le site Home Cycl'Home.
+                        proposées par {company.name} via le site Home Cycl'Home.
                     </p>
                 </section>
 
@@ -44,7 +47,7 @@ export function CGV() {
                     <h2 className="font-bold text-sm uppercase tracking-wide">Annulation</h2>
                     <p className="text-sm text-gray-600">
                         Le client peut annuler une intervention depuis son espace client jusqu'à 2 heures avant le
-                        début du créneau réservé. Passé ce délai, nous contacter directement par email: <a href="mailto:contact@homecyclhome.fr" className="underline">contact@homecyclhome.fr</a>
+                        début du créneau réservé. Passé ce délai, nous contacter directement par email: <a href={`mailto:${company.email}`} className="underline">{company.email}</a>
                     </p>
                 </section>
 
@@ -60,7 +63,7 @@ export function CGV() {
                     <h2 className="font-bold text-sm uppercase tracking-wide">Droit applicable</h2>
                     <p className="text-sm text-gray-600">
                         Les présentes CGV sont soumises au droit français. Tout litige relève de la compétence des
-                        tribunaux de Lyon.
+                        tribunaux de {company.rcs_city}.
                     </p>
                 </section>
             </main>

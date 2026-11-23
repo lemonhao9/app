@@ -8,6 +8,7 @@ import feeRoutes from './fees.js';
 import slotRoutes from './slots.js';
 import interventionRoutes from './interventions.js';
 import productRoutes from './products.js';
+import companyRoutes from './company.js';
 
 const router = Router();
 
@@ -20,5 +21,6 @@ router.use('/fees', feeRoutes);
 router.use('/slots', slotRoutes);
 router.use('/interventions', interventionRoutes);
 router.use('/products', productRoutes);
+router.use('/company', companyRoutes);
 
 export default router;

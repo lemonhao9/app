@@ -1,6 +1,8 @@
 import CrayonHorizontal2 from '@/assets/CrayonHorizontal2.png';
+import { useCompany } from '../context/useCompany';
 
 export function LandingPage() {
+  const { company } = useCompany();
   return (
     <div className="h-screen overflow-hidden relative">
       <div
@@ -13,7 +15,7 @@ export function LandingPage() {
         <h1 className="text-2xl sm:text-3xl md:text-4xl lg:text-5xl font-extrabold text-white leading-tight">
           La réparation de votre vélo qui vient à vous !
         </h1>
-        <p className="text-white/90 mt-3 text-base sm:text-lg font-semibold">Par LeCycleLyonnais</p>
+        <p className="text-white/90 mt-3 text-base sm:text-lg font-semibold">Par {company.name}</p>
       </div>
 
 

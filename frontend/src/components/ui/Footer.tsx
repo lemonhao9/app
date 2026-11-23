@@ -2,6 +2,7 @@ import { Link } from 'react-router-dom';
 import logoSrc from '@/assets/LELOGOHCHwhite.svg';
 import facebookIcon from '@/assets/facebookIcon.svg';
 import instagramIcon from '@/assets/instagramIcon.svg';
+import { useCompany } from '../../context/useCompany';
 
 const navLinks = [
     { to: '/', label: 'Accueil' },
@@ -17,6 +18,7 @@ const legalLinks = [
 ];
 
 export function Footer() {
+    const { company } = useCompany();
     return (
         <footer className="bg-black text-white">
             <div className="max-w-[1400px] mx-auto px-6 sm:px-10 py-12 grid grid-cols-2 md:grid-cols-4 gap-10">
@@ -26,7 +28,7 @@ export function Footer() {
                         <span>Home Cycl' Home</span>
                     </Link>
                     <p className="text-sm text-white/60">
-                        La réparation et l'entretien<br/> de vélos et VAE qui vient à vous.<br/> Par LeCycleLyonnais.
+                        La réparation et l'entretien<br /> de vélos et VAE qui vient à vous.<br /> Par {company.name}.
                     </p>
                     <div className="flex items-center gap-4 mt-1">
                         <a href="#" aria-label="Facebook">
@@ -58,14 +60,14 @@ export function Footer() {
 
                 <div className="flex flex-col gap-2">
                     <p className="font-semibold text-sm uppercase tracking-wide text-white/50 mb-1">Contact</p>
-                    <a href="mailto:contact@homecyclhome.fr" className="text-sm text-white/80 hover:text-white transition-colors">
-                        contact@homecyclhome.fr
+                    <a href={`mailto:${company.email}`} className="text-sm text-white/80 hover:text-white transition-colors">
+                        {company.email}
                     </a>
                 </div>
             </div>
 
             <div className="border-t border-white/10 px-6 sm:px-10 py-4 text-center text-xs text-white/50">
-                © 2026 LeCycleLyonnais. Tous droits réservés Lemon Hao
+                © 2026 {company.name}. Tous droits réservés Lemon Hao
             </div>
         </footer>
     );
