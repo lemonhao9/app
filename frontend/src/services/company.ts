@@ -1,5 +1,4 @@
-import { BASE, handle } from './http';
-
+import { BASE, authHeaders, handle } from './http';
 export interface Company {
     name: string;
     legal_form: string;
@@ -15,8 +14,16 @@ export interface Company {
     host_address: string;
 }
 
-export async function getCompany(): Promise<{ company: Company }> {
-    return handle(await fetch(`${BASE}/company`));
+export async function getCompany(init?: RequestInit): Promise<{ company: Company }> {
+    return handle(await fetch(`${BASE}/company`, init));
+}
+
+export async function updateCompany(data: Company): Promise<{ company: Company }> {
+    return handle(await fetch(`${BASE}/company`, {
+        method: 'PUT',
+        headers: { ...authHeaders(), 'Content-Type': 'application/json' },
+        body: JSON.stringify(data),
+    }));
 }
 
 export function formatSiret(siret: string): string {

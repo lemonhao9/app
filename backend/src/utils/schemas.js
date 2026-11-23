@@ -152,3 +152,20 @@ export const clientListQuerySchema = z.object({
     limit: z.coerce.number().int().positive().max(50).default(20),
     offset: z.coerce.number().int().min(0).default(0),
 }).strict();
+
+const requiredText = max => z.string().trim().min(1, 'Champ obligatoire').max(max, `${max} caractères maximum`);
+
+export const companyUpdateSchema = z.object({
+    name: requiredText(100),
+    legal_form: requiredText(50),
+    share_capital: z.number().int('Montant entier en euros').min(0).max(1_000_000_000),
+    rcs_city: requiredText(100),
+    siret: z.string().transform(v => v.replace(/\s/g, '')).pipe(z.string().regex(/^\d{14}$/, 'Le SIRET doit contenir 14 chiffres')),
+    address_line: requiredText(255),
+    postal_code: z.string().trim().regex(/^\d{5}$/, 'Code postal à 5 chiffres'),
+    city: requiredText(100),
+    email: z.string().trim().email('Adresse e-mail invalide').max(255),
+    publication_director: requiredText(255),
+    host_name: requiredText(255),
+    host_address: requiredText(255),
+}).strict();

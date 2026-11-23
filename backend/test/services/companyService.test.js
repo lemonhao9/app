@@ -23,3 +23,20 @@ describe('companyService.getCompany', () => {
         await expect(companyService.getCompany()).rejects.toMatchObject({ status: 404 });
     });
 });
+
+describe('companyService.updateCompany', () => {
+    it('renvoie la fiche mise à jour', async () => {
+        companyRepository.update.mockResolvedValue({ name: 'Nouveau nom' });
+
+        const company = await companyService.updateCompany({ name: 'Nouveau nom' });
+
+        expect(companyRepository.update).toHaveBeenCalledWith({ name: 'Nouveau nom' });
+        expect(company.name).toBe('Nouveau nom');
+    });
+
+    it('lève une 404 si la ligne est absente', async () => {
+        companyRepository.update.mockResolvedValue(null);
+
+        await expect(companyService.updateCompany({ name: 'X' })).rejects.toMatchObject({ status: 404 });
+    });
+});

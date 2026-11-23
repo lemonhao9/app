@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { planningQuerySchema, clientListQuerySchema } from '../../src/utils/schemas.js';
+import { planningQuerySchema, clientListQuerySchema, companyUpdateSchema } from '../../src/utils/schemas.js';
 
 describe('planningQuerySchema', () => {
     it('accepte une semaine', () => {
@@ -41,5 +41,34 @@ describe('clientListQuerySchema', () => {
         expect(clientListQuerySchema.safeParse({ zone_id: 'abc' }).success).toBe(false);
         expect(clientListQuerySchema.safeParse({ status: 'banni' }).success).toBe(false);
         expect(clientListQuerySchema.safeParse({ role: 'admin' }).success).toBe(false);
+    });
+});
+
+describe('companyUpdateSchema', () => {
+    const valid = {
+        name: 'LeCycleLyonnais', legal_form: 'SARL', share_capital: 25000, rcs_city: 'Lyon',
+        siret: '812 345 678 00019', address_line: '12 rue de la Part-Dieu', postal_code: '69003', city: 'Lyon',
+        email: 'contact@homecyclhome.fr', publication_director: 'la gérance', host_name: 'OVH SAS', host_address: 'Roubaix',
+    };
+
+    it('accepte une fiche complète et retire les espaces du SIRET', () => {
+        expect(companyUpdateSchema.parse(valid).siret).toBe('81234567800019');
+    });
+
+    it('refuse un SIRET qui n’a pas 14 chiffres', () => {
+        expect(companyUpdateSchema.safeParse({ ...valid, siret: '812 345' }).success).toBe(false);
+    });
+
+    it('refuse un champ légal vide, un e-mail ou un code postal invalide', () => {
+        expect(companyUpdateSchema.safeParse({ ...valid, publication_director: '   ' }).success).toBe(false);
+        expect(companyUpdateSchema.safeParse({ ...valid, email: 'pas-un-mail' }).success).toBe(false);
+        expect(companyUpdateSchema.safeParse({ ...valid, postal_code: '6900' }).success).toBe(false);
+    });
+
+    it('refuse un capital décimal, un champ manquant ou en trop', () => {
+        expect(companyUpdateSchema.safeParse({ ...valid, share_capital: 1.5 }).success).toBe(false);
+        const { city: _city, ...missing } = valid;
+        expect(companyUpdateSchema.safeParse(missing).success).toBe(false);
+        expect(companyUpdateSchema.safeParse({ ...valid, company_id: 2 }).success).toBe(false);
     });
 });

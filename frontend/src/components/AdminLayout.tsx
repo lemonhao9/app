@@ -12,6 +12,7 @@ export function AdminLayout() {
         { to: '/admin/clients', label: 'Clients' },
         { to: '/admin/utilisateurs', label: 'Utilisateurs' },
         { to: '/admin/planning', label: 'Planning' },
+        { to: '/admin/societe', label: 'Société' },
     ];
 
     return (
