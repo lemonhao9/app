@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-
+import { apiFetch } from "@/services/http";
 interface HistoryItem {
     intervention_id: number;
     state: string;
@@ -55,7 +55,7 @@ export function HistoriqueTechnicien() {
 
     useEffect(() => {
         const token = localStorage.getItem('hch_token');
-        fetch('/api/v1/interventions/history?limit=50', {
+        apiFetch('/api/v1/interventions/history?limit=50', {
             headers: { Authorization: `Bearer ${token}` },
         })
             .then(res => { if (!res.ok) throw new Error(); return res.json(); })
@@ -85,7 +85,7 @@ export function HistoriqueTechnicien() {
         const currentOffset = reset ? 0 : offset;
         setLoading(true);
         setError(null);
-        fetch(`/api/v1/interventions/history?${buildQuery(currentOffset)}`, {
+        apiFetch(`/api/v1/interventions/history?${buildQuery(currentOffset)}`, {
             headers: { Authorization: `Bearer ${token}` },
         })
             .then(res => { if (!res.ok) throw new Error(); return res.json(); })

@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useState } from "react";
 import { useParams, Link } from "react-router-dom";
-
+import { apiFetch } from "@/services/http";
 interface Photo {
     photo_id: number;
     url: string;
@@ -70,7 +70,7 @@ export function InterventionDetail() {
 
         const loadIntervention = useCallback(() => {
         const token = localStorage.getItem('hch_token');
-        return fetch(`/api/v1/interventions/${id}`, {
+        return apiFetch(`/api/v1/interventions/${id}`, {
             headers: { Authorization: `Bearer ${token}` },
         })
             .then(res => { if (!res.ok) throw new Error(); return res.json(); })
@@ -93,7 +93,7 @@ export function InterventionDetail() {
         const token = localStorage.getItem('hch_token');
         setActionLoading(true);
         setActionError(null);
-        fetch(`/api/v1/interventions/${id}/start`, {
+        apiFetch(`/api/v1/interventions/${id}/start`, {
             method: 'PATCH',
             headers: { Authorization: `Bearer ${token}` },
         })
@@ -108,7 +108,7 @@ export function InterventionDetail() {
         const token = localStorage.getItem('hch_token');
         setActionLoading(true);
         setActionError(null);
-        fetch(`/api/v1/interventions/${id}/complete`, {
+        apiFetch(`/api/v1/interventions/${id}/complete`, {
             method: 'PATCH',
             headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
             body: JSON.stringify({ total_price: Number(price), is_paid: isPaid }),
@@ -127,7 +127,7 @@ export function InterventionDetail() {
         setActionError(null);
         const formData = new FormData();
         photoFiles.forEach(file => formData.append('photos', file));
-        fetch(`/api/v1/interventions/${id}/photos`, {
+        apiFetch(`/api/v1/interventions/${id}/photos`, {
             method: 'POST',
             headers: { Authorization: `Bearer ${token}` },
             body: formData,
@@ -143,7 +143,7 @@ export function InterventionDetail() {
         const token = localStorage.getItem('hch_token');
         setActionLoading(true);
         setActionError(null);
-        fetch(`/api/v1/interventions/${id}/cancel`, {
+        apiFetch(`/api/v1/interventions/${id}/cancel`, {
             method: 'PATCH',
             headers: { Authorization: `Bearer ${token}` },
         })

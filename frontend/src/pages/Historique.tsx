@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 import { MapContainer, TileLayer, GeoJSON as GeoJsonLayer } from "react-leaflet";
-
+import { apiFetch } from "@/services/http";
 interface InterventionSummary {
     intervention_id: number;
     state: string;
@@ -58,7 +58,7 @@ export function Historique() {
         const token = localStorage.getItem('hch_token');
         setLoading(true);
         setError(null);
-        fetch(`/api/v1/interventions/me?sort=${sort}&limit=${PAGE_SIZE}&offset=0`, {
+        apiFetch(`/api/v1/interventions/me?sort=${sort}&limit=${PAGE_SIZE}&offset=0`, {
             headers: { Authorization: `Bearer ${token}` },
         })
             .then(res => { if (!res.ok) throw new Error(); return res.json(); })
@@ -73,7 +73,7 @@ export function Historique() {
 
     function loadMore() {
         const token = localStorage.getItem('hch_token');
-        fetch(`/api/v1/interventions/me?sort=${sort}&limit=${PAGE_SIZE}&offset=${offset}`, {
+        apiFetch(`/api/v1/interventions/me?sort=${sort}&limit=${PAGE_SIZE}&offset=${offset}`, {
             headers: { Authorization: `Bearer ${token}` },
         })
             .then(res => { if (!res.ok) throw new Error(); return res.json(); })

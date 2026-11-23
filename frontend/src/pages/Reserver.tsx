@@ -3,6 +3,7 @@ import { Link } from "react-router-dom";
 import { MapContainer, TileLayer, GeoJSON as GeoJsonLayer } from "react-leaflet";
 import { Button } from "@/components/ui/button";
 import { useAuth } from '@/context/useAuth';
+import { apiFetch } from "@/services/http";
 
 interface Bike {
     bike_id: number;
@@ -90,7 +91,7 @@ function BikeStep({ selectedBikeId, onSelect }: { selectedBikeId: number | null;
         const token = localStorage.getItem('hch_token');
         if (!token) return;
         setLoading(true);
-        fetch('/api/v1/bikes/me', { headers: { Authorization: `Bearer ${token}` } })
+        apiFetch('/api/v1/bikes/me', { headers: { Authorization: `Bearer ${token}` } })
             .then(res => { if (!res.ok) throw new Error(); return res.json(); })
             .then(data => setBikes(data.bikes))
             .catch(() => setError('Impossible de charger vos vélos.'))
@@ -132,7 +133,7 @@ function FeeStep({ selectedFeeId, onSelect }: { selectedFeeId: number | null; on
 
     useEffect(() => {
         setLoading(true);
-        fetch('/api/v1/fees')
+        apiFetch('/api/v1/fees')
             .then(res => { if (!res.ok) throw new Error(); return res.json(); })
             .then(setFees)
             .catch(() => setError('Impossible de charger les forfaits.'))
@@ -184,7 +185,7 @@ function SlotStep({
     useEffect(() => {
         const token = localStorage.getItem('hch_token');
         if (!token) return;
-        fetch('/api/v1/addresses/me', { headers: { Authorization: `Bearer ${token}` } })
+        apiFetch('/api/v1/addresses/me', { headers: { Authorization: `Bearer ${token}` } })
             .then(res => { if (!res.ok) throw new Error(); return res.json(); })
             .then(data => {
                 setAddresses(data.addresses);
@@ -203,7 +204,7 @@ function SlotStep({
     useEffect(() => {
         if (!zoneId) { setZone(null); return; }
         const token = localStorage.getItem('hch_token');
-        fetch(`/api/v1/zones/${zoneId}`, { headers: { Authorization: `Bearer ${token}` } })
+        apiFetch(`/api/v1/zones/${zoneId}`, { headers: { Authorization: `Bearer ${token}` } })
             .then(res => { if (!res.ok) throw new Error(); return res.json(); })
             .then(data => setZone(data.zone))
             .catch(() => setZone(null));
@@ -214,7 +215,7 @@ function SlotStep({
         const token = localStorage.getItem('hch_token');
         setLoading(true);
         setError(null);
-        fetch(`/api/v1/slots?zone_id=${zoneId}&fee_id=${feeId}&day=${day}`, { headers: { Authorization: `Bearer ${token}` } })
+        apiFetch(`/api/v1/slots?zone_id=${zoneId}&fee_id=${feeId}&day=${day}`, { headers: { Authorization: `Bearer ${token}` } })
             .then(res => { if (!res.ok) throw new Error(); return res.json(); })
             .then(data => setSlots(data.slots))
             .catch(() => setError('Impossible de charger les créneaux.'))
@@ -318,7 +319,7 @@ function ProductsPhotosStep({
     const [error, setError] = useState<string | null>(null);
 
     useEffect(() => {
-        fetch('/api/v1/products')
+        apiFetch('/api/v1/products')
             .then(res => { if (!res.ok) throw new Error(); return res.json(); })
             .then(setProducts)
             .catch(() => setError('Impossible de charger les produits additionnels.'))
@@ -395,10 +396,10 @@ function RecapStep({
         const token = localStorage.getItem('hch_token');
         setLoading(true);
         Promise.all([
-            fetch('/api/v1/bikes/me', { headers: { Authorization: `Bearer ${token}` } }).then(r => { if (!r.ok) throw new Error(); return r.json(); }),
-            fetch('/api/v1/fees').then(r => { if (!r.ok) throw new Error(); return r.json(); }),
-            fetch('/api/v1/addresses/me', { headers: { Authorization: `Bearer ${token}` } }).then(r => { if (!r.ok) throw new Error(); return r.json(); }),
-            fetch('/api/v1/products').then(r => { if (!r.ok) throw new Error(); return r.json(); }),
+            apiFetch('/api/v1/bikes/me', { headers: { Authorization: `Bearer ${token}` } }).then(r => { if (!r.ok) throw new Error(); return r.json(); }),
+            apiFetch('/api/v1/fees').then(r => { if (!r.ok) throw new Error(); return r.json(); }),
+            apiFetch('/api/v1/addresses/me', { headers: { Authorization: `Bearer ${token}` } }).then(r => { if (!r.ok) throw new Error(); return r.json(); }),
+            apiFetch('/api/v1/products').then(r => { if (!r.ok) throw new Error(); return r.json(); }),
         ])
             .then(([bikesData, feesData, addressesData, productsData]) => {
                 setBikes(bikesData.bikes);
@@ -511,7 +512,7 @@ export function Reserver() {
         setPhotoWarning(null);
         const token = localStorage.getItem('hch_token');
         try {
-            const res = await fetch('/api/v1/interventions', {
+            const res = await apiFetch('/api/v1/interventions', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
                 body: JSON.stringify({
@@ -547,7 +548,7 @@ export function Reserver() {
             if (photos.length > 0) {
                 const formData = new FormData();
                 photos.forEach(file => formData.append('photos', file));
-                const photoRes = await fetch(`/api/v1/interventions/${intervention.intervention_id}/photos`, {
+                const photoRes = await apiFetch(`/api/v1/interventions/${intervention.intervention_id}/photos`, {
                     method: 'POST',
                     headers: { Authorization: `Bearer ${token}` },
                     body: formData,

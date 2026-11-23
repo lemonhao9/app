@@ -198,7 +198,7 @@ export async function updateProfile(userId, data) {
         const valid = await bcrypt.compare(data.currentPassword, current.password_hash);
         if (!valid) {
             const err = new Error('Mot de passe actuel incorrect');
-            err.status = 401;
+            err.status = 400;
             throw err;
         }
         passwordHash = await bcrypt.hash(data.newPassword, SALT_ROUNDS);

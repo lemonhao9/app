@@ -1,6 +1,7 @@
 import { useState, type SyntheticEvent } from 'react';
 import { useAuth } from '@/context/useAuth';
 import { Button } from '@/components/ui/button';
+import { apiFetch } from '@/services/http';
 
 export function TechnicianProfil() {
     const { user, updateUser } = useAuth();
@@ -32,7 +33,7 @@ export function TechnicianProfil() {
 
         try {
             const token = localStorage.getItem('hch_token');
-            const res = await fetch('/api/v1/users/me', {
+            const res = await apiFetch('/api/v1/users/me', {
                 method: 'PUT',
                 headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
                 body: JSON.stringify(body),

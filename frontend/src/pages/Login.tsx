@@ -9,7 +9,7 @@ export function Login() {
   const navigate = useNavigate();
   const location = useLocation();
   const from = (location.state as { from?: string } | null)?.from;
-  const { login } = useAuth();
+  const { login, sessionExpired } = useAuth();
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [error, setError] = useState<string | null>(null);
@@ -48,7 +48,11 @@ export function Login() {
       <NavBar dark />
       <form onSubmit={handleSubmit} className="w-full max-w-sm bg-white rounded-xl border p-6 flex flex-col gap-4 mt-10">
         <h1 className="text-xl font-bold text-center">Se connecter</h1>
-
+        {sessionExpired && (
+          <p className="text-sm text-amber-700 bg-amber-50 border border-amber-200 rounded-md p-2">
+            Votre session a expiré : veuillez vous reconnecter.
+          </p>
+        )}
         <div className="flex flex-col gap-1">
           <label htmlFor="email" className="text-sm font-medium">Email</label>
           <input id="email" type="email" value={email} onChange={(e) => setEmail(e.target.value)} required className="border border-gray-300 rounded-md px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500" />

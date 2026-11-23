@@ -47,11 +47,11 @@ describe('userService.updateProfile', () => {
         expect(userRepository.findByEmail).not.toHaveBeenCalled();
     });
 
-    it('lève une 401 si le mot de passe actuel est incorrect', async () => {
+    it('lève une 400 si le mot de passe actuel est incorrect (pas une 401, qui déconnecterait)', async () => {
         bcrypt.compare.mockResolvedValue(false);
 
         await expect(userService.updateProfile(1, { newPassword: 'nouveauMdp123', currentPassword: 'faux' }))
-            .rejects.toMatchObject({ status: 401 });
+            .rejects.toMatchObject({ status: 400 });
     });
 
     it('change le mot de passe si l\'ancien est correct', async () => {

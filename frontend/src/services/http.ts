@@ -18,7 +18,29 @@ function errorMessage(error: unknown): string {
     return 'Erreur';
 }
 
+export const SESSION_EXPIRED_EVENT = 'hch:session-expired';
+
+function notifyIfSessionExpired(res: Response) {
+    if (res.status === 401 && localStorage.getItem('hch_token')) {
+        window.dispatchEvent(new Event(SESSION_EXPIRED_EVENT));
+    }
+}
+
+export async function apiFetch(input: string, init: RequestInit = {}): Promise<Response> {
+    const headers = new Headers(init.headers);
+    const token = localStorage.getItem('hch_token');
+    if (token && !headers.has('Authorization')) {
+        headers.set('Authorization', `Bearer ${token}`);
+    }
+    const res = await fetch(input, { ...init, headers });
+    notifyIfSessionExpired(res);
+    return res;
+}
+
 export async function handle(res: Response) {
-    if (!res.ok) throw new Error(errorMessage((await res.json().catch(() => ({}))).error));
+    if (!res.ok) {
+        notifyIfSessionExpired(res);
+        throw new Error(errorMessage((await res.json().catch(() => ({}))).error));
+    }
     return res.json();
 }

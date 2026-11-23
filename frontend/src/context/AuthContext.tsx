@@ -1,6 +1,6 @@
 import { useEffect, useState, type ReactNode } from 'react';
 import { AuthContext } from './auth-context';
-
+import { SESSION_EXPIRED_EVENT } from '../services/http';
 export interface User {
     user_id: number;
     email: string;
@@ -15,6 +15,7 @@ export interface User {
 export function AuthProvider({ children }: { children: ReactNode }) {
     const [user, setUser] = useState<User | null>(null);
     const [loading, setLoading] = useState(true);
+    const [sessionExpired, setSessionExpired] = useState(false);
 
     useEffect(() => {
         const token = localStorage.getItem('hch_token');
@@ -39,9 +40,20 @@ export function AuthProvider({ children }: { children: ReactNode }) {
             .finally(() => setLoading(false));
     }, []);
 
+    useEffect(() => {
+        function onSessionExpired() {
+            localStorage.removeItem('hch_token');
+            setUser(null);
+            setSessionExpired(true);
+        }
+        window.addEventListener(SESSION_EXPIRED_EVENT, onSessionExpired);
+        return () => window.removeEventListener(SESSION_EXPIRED_EVENT, onSessionExpired);
+    }, []);
+
     function login(token: string, user: User) {
         localStorage.setItem('hch_token', token);
         setUser(user);
+        setSessionExpired(false);
     }
 
     function logout() {
@@ -61,7 +73,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     }
 
     return (
-        <AuthContext.Provider value={{ user, loading, login, logout, updateUser }}>
+        <AuthContext.Provider value={{ user, loading, login, logout, updateUser, sessionExpired }}>
             {children}
         </AuthContext.Provider>
     );

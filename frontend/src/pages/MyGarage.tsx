@@ -1,5 +1,7 @@
 import { Button } from '@/components/ui/button';
 import { useEffect, useState, type SyntheticEvent } from 'react';
+import { apiFetch } from '@/services/http';
+
 interface Bike {
     bike_id: number;
     brand: string | null;
@@ -38,7 +40,7 @@ function BikeForm({ bike, onSaved, onCancel }: { bike?: Bike; onSaved: (bike: Bi
             const token = localStorage.getItem('hch_token');
             const url = bike ? `/api/v1/bikes/${bike.bike_id}` : '/api/v1/bikes';
             const method = bike ? 'PUT' : 'POST';
-            const res = await fetch(url, {
+            const res = await apiFetch(url, {
                 method,
                 headers: { Authorization: `Bearer ${token}` },
                 body: formData,
@@ -93,7 +95,7 @@ export function MyGarage() {
         if (!token) return;
         setLoading(true);
         setError(null);
-        fetch('/api/v1/bikes/me', { headers: { Authorization: `Bearer ${token}` } })
+        apiFetch('/api/v1/bikes/me', { headers: { Authorization: `Bearer ${token}` } })
             .then(res => { if (!res.ok) throw new Error(); return res.json(); })
             .then(data => setBikes(data.bikes))
             .catch(() => setError('Impossible de charger vos vélos.'))
@@ -108,7 +110,7 @@ export function MyGarage() {
     async function handleDelete(bikeId: number) {
     if (!window.confirm('Êtes-vous sûr de vouloir supprimer ce vélo ?')) return;
     const token = localStorage.getItem('hch_token');
-    const res = await fetch(`/api/v1/bikes/${bikeId}`,
+    const res = await apiFetch(`/api/v1/bikes/${bikeId}`,
         { method: 'DELETE', headers: { Authorization: `Bearer ${token}` } });
     if (!res.ok) {
         const data = await res.json().catch(() => ({}));

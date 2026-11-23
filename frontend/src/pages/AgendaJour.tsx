@@ -1,7 +1,7 @@
 import { useEffect, useState } from "react";
 import { MapContainer, TileLayer, GeoJSON as GeoJsonLayer } from "react-leaflet";
 import { Link } from "react-router-dom";
-
+import { apiFetch } from "../services/http";
 interface InterventionSummary {
     intervention_id: number;
     state: string;
@@ -46,7 +46,7 @@ export function AgendaJour() {
 
     useEffect(() => {
         const token = localStorage.getItem('hch_token');
-        fetch('/api/v1/interventions/today', {
+        apiFetch('/api/v1/interventions/today', {
             headers: { Authorization: `Bearer ${token}` },
         })
             .then(res => { if (!res.ok) throw new Error(); return res.json(); })
