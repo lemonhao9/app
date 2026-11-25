@@ -7,17 +7,10 @@ export async function getAvailableSlots({ zone_id, fee_id, day }) {
     return await slotRepository.findByZoneFeeDay(zone_id, fee_id, day);
 }
 
-export async function createSlot({ day, start_at, ended_at, zone_id, fee_id, technician_id }) {
+export async function createSlot({ day, start_at, ended_at, fee_id, technician_id }) {
     if (start_at >= ended_at) {
         const err = new Error("L'heure de fin doit être après l'heure de début");
         err.status = 400;
-        throw err;
-    }
-
-    const zone = await zoneRepository.findById(zone_id);
-    if (!zone || !zone.is_active) {
-        const err = new Error('Zone introuvable ou inactive');
-        err.status = 404;
         throw err;
     }
 
@@ -35,9 +28,9 @@ export async function createSlot({ day, start_at, ended_at, zone_id, fee_id, tec
         throw err;
     }
 
-    const assigned = await zoneRepository.isTechnicianInZone(zone_id, technician_id);
-    if (!assigned) {
-        const err = new Error("Ce technicien n'est pas positionné sur cette zone");
+    const hasZone = await zoneRepository.technicianHasActiveZone(technician_id);
+    if (!hasZone) {
+        const err = new Error("Ce technicien n'est positionné sur aucune zone active");
         err.status = 409;
         throw err;
     }
@@ -49,8 +42,7 @@ export async function createSlot({ day, start_at, ended_at, zone_id, fee_id, tec
         throw err;
     }
 
-    return slotRepository.create({ day, startAt: start_at, endedAt: ended_at, zoneId: zone_id, feeId: fee_id, technicianId: technician_id });
-}
+    return slotRepository.create({ day, startAt: start_at, endedAt: ended_at, feeId: fee_id, technicianId: technician_id });}
 
 export async function deleteSlot(slotId) {
     const slot = await slotRepository.findById(slotId);

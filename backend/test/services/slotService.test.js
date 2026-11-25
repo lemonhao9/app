@@ -14,29 +14,34 @@ const validInput = {
     day: '2026-09-20',
     start_at: '09:00:00',
     ended_at: '10:00:00',
-    zone_id: 1,
     fee_id: 1,
     technician_id: 1,
 };
 
 beforeEach(() => {
     vi.resetAllMocks();
-    zoneRepository.findById.mockResolvedValue({ zone_id: 1, is_active: true });
     feesRepository.findById.mockResolvedValue({ fee_id: 1, is_active: true });
     userRepository.findById.mockResolvedValue({ user_id: 1, role: 'technician', is_active: true });
-    zoneRepository.isTechnicianInZone.mockResolvedValue(true);
+    zoneRepository.technicianHasActiveZone.mockResolvedValue(true);
     slotRepository.findOverlapping.mockResolvedValue(false);
+});
+
+describe('slotService.getAvailableSlots', () => {
+    it('délègue la recherche au repository avec la zone du client, le forfait et le jour', async () => {
+        slotRepository.findByZoneFeeDay.mockResolvedValue([{ slot_id: 1, available: true }]);
+
+        const result = await slotService.getAvailableSlots({ zone_id: 2, fee_id: 1, day: '2026-09-20' });
+
+        expect(slotRepository.findByZoneFeeDay).toHaveBeenCalledWith(2, 1, '2026-09-20');
+        expect(result).toEqual([{ slot_id: 1, available: true }]);
+    });
 });
 
 describe('slotService.createSlot', () => {
     it("lève une 400 si l'heure de fin n'est pas après l'heure de début", async () => {
         await expect(slotService.createSlot({ ...validInput, start_at: '10:00:00', ended_at: '10:00:00' }))
             .rejects.toMatchObject({ status: 400 });
-    });
-
-    it('lève une 404 si la zone est introuvable ou inactive', async () => {
-        zoneRepository.findById.mockResolvedValue(null);
-        await expect(slotService.createSlot(validInput)).rejects.toMatchObject({ status: 404 });
+        expect(slotRepository.create).not.toHaveBeenCalled();
     });
 
     it('lève une 404 si le forfait est introuvable ou inactif', async () => {
@@ -49,9 +54,11 @@ describe('slotService.createSlot', () => {
         await expect(slotService.createSlot(validInput)).rejects.toMatchObject({ status: 404 });
     });
 
-    it("lève une 409 si le technicien n'est pas positionné sur cette zone", async () => {
-        zoneRepository.isTechnicianInZone.mockResolvedValue(false);
+    it("lève une 409 si le technicien n'est positionné sur aucune zone active", async () => {
+        zoneRepository.technicianHasActiveZone.mockResolvedValue(false);
         await expect(slotService.createSlot(validInput)).rejects.toMatchObject({ status: 409 });
+        expect(zoneRepository.technicianHasActiveZone).toHaveBeenCalledWith(1);
+        expect(slotRepository.create).not.toHaveBeenCalled();
     });
 
     it('lève une 409 en cas de chevauchement', async () => {
@@ -59,7 +66,7 @@ describe('slotService.createSlot', () => {
         await expect(slotService.createSlot(validInput)).rejects.toMatchObject({ status: 409 });
     });
 
-    it('crée le créneau si toutes les validations passent', async () => {
+    it('crée le créneau sans zone si toutes les validations passent', async () => {
         slotRepository.create.mockResolvedValue({ slot_id: 1, ...validInput });
 
         const result = await slotService.createSlot(validInput);
@@ -68,7 +75,6 @@ describe('slotService.createSlot', () => {
             day: validInput.day,
             startAt: validInput.start_at,
             endedAt: validInput.ended_at,
-            zoneId: validInput.zone_id,
             feeId: validInput.fee_id,
             technicianId: validInput.technician_id,
         });

@@ -8,6 +8,7 @@ const router = Router();
 
 router.param('id', validateIdParam);
 router.get('/', authenticate, slotController.getSlots);
+router.get('/settings', authenticate, slotController.getSettings);
 router.post('/', authenticate, authorize('admin'), slotController.createSlot);
 router.delete('/:id', authenticate, authorize('admin'), slotController.deleteSlot);
 

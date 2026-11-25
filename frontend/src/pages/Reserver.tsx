@@ -72,14 +72,20 @@ function formatTime(time: string): string {
     return time.slice(0, 5);
 }
 
-function todayISO(): string {
-    return new Date().toISOString().slice(0, 10);
+function toLocalISODate(d: Date): string {
+    const month = String(d.getMonth() + 1).padStart(2, '0');
+    const dayOfMonth = String(d.getDate()).padStart(2, '0');
+    return `${d.getFullYear()}-${month}-${dayOfMonth}`;
 }
 
-function maxBookableDate(): string {
+function todayISO(): string {
+    return toLocalISODate(new Date());
+}
+
+function maxBookableDate(horizonDays: number): string {
     const d = new Date();
-    d.setDate(d.getDate() + 13);
-    return d.toISOString().slice(0, 10);
+    d.setDate(d.getDate() + horizonDays - 1);
+    return toLocalISODate(d);
 }
 
 function BikeStep({ selectedBikeId, onSelect }: { selectedBikeId: number | null; onSelect: (id: number) => void }) {
@@ -181,6 +187,14 @@ function SlotStep({
     const [zone, setZone] = useState<ZoneInfo | null>(null);
     const [loading, setLoading] = useState(false);
     const [error, setError] = useState<string | null>(null);
+    const [horizonDays, setHorizonDays] = useState<number | null>(null);
+
+    useEffect(() => {
+        apiFetch('/api/v1/slots/settings')
+            .then(res => { if (!res.ok) throw new Error(); return res.json(); })
+            .then(data => setHorizonDays(data.horizon_days))
+            .catch(() => setHorizonDays(null));
+    }, []);
 
     useEffect(() => {
         const token = localStorage.getItem('hch_token');
@@ -240,7 +254,7 @@ function SlotStep({
                 ))}
             </select>
 
-                        {!zoneId && (
+            {!zoneId && (
                 <p className="text-sm text-orange-600">
                     Cette adresse est hors de nos zones d'intervention : aucun créneau ne peut y être proposé.{' '}
                     <Link to="/profil" className="underline">Gérer mes adresses</Link>
@@ -258,7 +272,7 @@ function SlotStep({
                         type="date"
                         value={day}
                         min={todayISO()}
-                        max={maxBookableDate()}
+                        max={horizonDays ? maxBookableDate(horizonDays) : undefined}
                         onChange={(e) => setDay(e.target.value)}
                         className="w-full border border-gray-300 rounded-md px-3 py-2 text-sm"
                     />
@@ -524,7 +538,7 @@ export function Reserver() {
             });
             const data = await res.json().catch(() => null);
 
-                        if (!res.ok) {
+            if (!res.ok) {
                 if (res.status === 409 && data?.code === 'FEE_INACTIVE') {
                     setSubmitError(data.error);
                     setSelectedFeeId(null);

@@ -1,5 +1,6 @@
 import { z } from 'zod';
 import * as slotService from '../services/slotService.js';
+import { BOOKING_HORIZON_DAYS } from '../utils/booking.js';
 
 const slotQuerySchema = z.object({
     zone_id: z.coerce.number().int().positive(),
@@ -24,7 +25,6 @@ const createSlotSchema = z.object({
     day: z.string().regex(/^\d{4}-\d{2}-\d{2}$/),
     start_at: z.string().regex(/^\d{2}:\d{2}:\d{2}$/),
     ended_at: z.string().regex(/^\d{2}:\d{2}:\d{2}$/),
-    zone_id: z.coerce.number().int().positive(),
     fee_id: z.coerce.number().int().positive(),
     technician_id: z.coerce.number().int().positive(),
 });
@@ -49,4 +49,8 @@ export async function deleteSlot(req, res, next) {
     } catch (err) {
         next(err);
     }
+}
+
+export function getSettings(req, res) {
+    res.json({ horizon_days: BOOKING_HORIZON_DAYS });
 }

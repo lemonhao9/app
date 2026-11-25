@@ -4,6 +4,7 @@ import * as interventionRepository from '../repositories/interventionRepository.
 import * as slotRepository from '../repositories/slotRepository.js';
 import * as bikeRepository from '../repositories/bikeRepository.js';
 import * as addressRepository from '../repositories/addressRepository.js';
+import * as zoneRepository from '../repositories/zoneRepository.js';
 import * as feesRepository from '../repositories/feesRepository.js';
 import * as productsRepository from '../repositories/productsRepository.js';
 
@@ -39,8 +40,14 @@ export async function createIntervention(clientId, { bike_id, slot_id, address_i
         err.status = 404;
         throw err;
     }
-    if (address.zone_id !== slot.zone_id) {
-        const err = new Error("L'adresse sélectionnée ne correspond pas à la zone de ce créneau");
+    if (!address.zone_id) {
+        const err = new Error("Cette adresse n'est dans aucune zone desservie");
+        err.status = 409;
+        throw err;
+    }
+    const covered = await zoneRepository.isTechnicianInActiveZone(address.zone_id, slot.technician_id);
+    if (!covered) {
+        const err = new Error("Ce créneau n'est pas proposé dans la zone de l'adresse sélectionnée");
         err.status = 409;
         throw err;
     }
@@ -193,8 +200,9 @@ export async function reassignIntervention(interventionId, { slot_id }) {
         throw err;
     }
 
-    if (currentSlot.zone_id !== slot.zone_id) {
-        const err = new Error("Le nouveau créneau ne correspond pas à la zone de l'adresse du rendez-vous");
+    const covered = await zoneRepository.isTechnicianInActiveZone(intervention.zone_id, slot.technician_id);
+    if (!covered) {
+        const err = new Error("Le technicien de ce créneau n'intervient pas dans la zone du rendez-vous");
         err.status = 409;
         throw err;
     }

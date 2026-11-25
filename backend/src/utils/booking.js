@@ -1,0 +1,1 @@
+export const BOOKING_HORIZON_DAYS = Number(process.env.BOOKING_HORIZON_DAYS ?? 60);

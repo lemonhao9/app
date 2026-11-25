@@ -38,12 +38,12 @@ export async function countReferences(zoneId) {
     const result = await query(
         `SELECT
             (SELECT COUNT(*) FROM address WHERE zone_id = $1) AS address_count,
-            (SELECT COUNT(*) FROM slot WHERE zone_id = $1) AS slot_count`,
+            (SELECT COUNT(*) FROM intervention WHERE zone_id = $1) AS intervention_count`,
         [zoneId]
     );
     return {
         addressCount: Number(result.rows[0].address_count),
-        slotCount: Number(result.rows[0].slot_count),
+        interventionCount: Number(result.rows[0].intervention_count),
     };
 }
 
@@ -92,10 +92,24 @@ export async function findTechniciansByZone(zoneId) {
     return result.rows;
 }
 
-export async function isTechnicianInZone(zoneId, userId) {
+export async function isTechnicianInActiveZone(zoneId, userId) {
     const result = await query(
-        `SELECT 1 FROM positionner WHERE zone_id = $1 AND user_id = $2 LIMIT 1`,
+        `SELECT 1 FROM positionner p
+         JOIN zone z ON z.zone_id = p.zone_id AND z.is_active = TRUE
+         WHERE p.zone_id = $1 AND p.user_id = $2
+         LIMIT 1`,
         [zoneId, userId]
+    );
+    return result.rows.length > 0;
+}
+
+export async function technicianHasActiveZone(userId) {
+    const result = await query(
+        `SELECT 1 FROM positionner p
+         JOIN zone z ON z.zone_id = p.zone_id AND z.is_active = TRUE
+         WHERE p.user_id = $1
+         LIMIT 1`,
+        [userId]
     );
     return result.rows.length > 0;
 }

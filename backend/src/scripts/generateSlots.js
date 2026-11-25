@@ -1,15 +1,10 @@
 import 'dotenv/config';
 import { query } from '../utils/db.js';
+import { BOOKING_HORIZON_DAYS } from '../utils/booking.js';
 
-// Génération automatique récurrente des créneaux (SLOT-01, ADR-13).
-// Idempotent : saute les jours déjà générés pour un technicien donné.
-// Pour un même technicien/jour, les forfaits s'enchaînent séquentiellement
-// (jamais deux forfaits sur le même horaire)
-
-const DAYS_AHEAD = Number(process.env.SLOT_GENERATION_DAYS_AHEAD ?? 14);
 const WORK_START_HOUR = Number(process.env.SLOT_WORK_START_HOUR ?? 9);
 const WORK_END_HOUR = Number(process.env.SLOT_WORK_END_HOUR ?? 18);
-const WORKING_WEEKDAYS = [1, 2, 3, 4, 5, 6]; // lundi-samedi (0 = dimanche)
+const WORKING_WEEKDAYS = [1, 2, 3, 4, 5, 6];
 
 function addMinutes(hour, minute, delta) {
     const total = hour * 60 + minute + delta;
@@ -29,12 +24,17 @@ async function getActiveFees() {
     return result.rows;
 }
 
-async function getTechnicianZoneAssignments() {
+async function getBookableTechnicians() {
     const result = await query(`
-        SELECT p.zone_id, p.user_id AS technician_id
-        FROM positionner p
-        JOIN zone z ON z.zone_id = p.zone_id AND z.is_active = TRUE
-        JOIN "user" u ON u.user_id = p.user_id AND u.is_active = TRUE
+        SELECT u.user_id AS technician_id
+        FROM "user" u
+        WHERE u.role = 'technician' AND u.is_active = TRUE
+          AND EXISTS (
+              SELECT 1 FROM positionner p
+              JOIN zone z ON z.zone_id = p.zone_id AND z.is_active = TRUE
+              WHERE p.user_id = u.user_id
+          )
+        ORDER BY u.user_id
     `, []);
     return result.rows;
 }
@@ -44,7 +44,7 @@ async function hasSlotsForDay(technicianId, day) {
     return result.rows.length > 0;
 }
 
-function generateDaySlots(fees, zoneId, technicianId, day) {
+function generateDaySlots(fees, technicianId, day) {
     const slots = [];
     let cursor = { hour: WORK_START_HOUR, minute: 0 };
     let feeIndex = 0;
@@ -58,7 +58,6 @@ function generateDaySlots(fees, zoneId, technicianId, day) {
             start_at: toTimeString(cursor),
             ended_at: toTimeString(next),
             day,
-            zone_id: zoneId,
             fee_id: fee.fee_id,
             technician_id: technicianId,
         });
@@ -76,16 +75,16 @@ async function generateSlots() {
         return;
     }
 
-    const assignments = await getTechnicianZoneAssignments();
-    if (assignments.length === 0) {
-        console.log('Aucun technicien assigné à une zone (table positionner vide) rien à générer.');
+    const technicians = await getBookableTechnicians();
+    if (technicians.length === 0) {
+        console.log('Aucun technicien actif positionné sur une zone active rien à générer.');
         return;
     }
 
     let totalCreated = 0;
 
-    for (const { zone_id, technician_id } of assignments) {
-        for (let i = 0; i < DAYS_AHEAD; i++) {
+    for (const { technician_id } of technicians) {
+        for (let i = 0; i < BOOKING_HORIZON_DAYS; i++) {
             const date = new Date();
             date.setDate(date.getDate() + i);
             if (!WORKING_WEEKDAYS.includes(date.getDay())) continue;
@@ -93,11 +92,11 @@ async function generateSlots() {
             const day = toDateString(date);
             if (await hasSlotsForDay(technician_id, day)) continue;
 
-            const daySlots = generateDaySlots(fees, zone_id, technician_id, day);
+            const daySlots = generateDaySlots(fees, technician_id, day);
             for (const slot of daySlots) {
                 await query(
-                    `INSERT INTO slot (start_at, ended_at, day, zone_id, fee_id, technician_id) VALUES ($1, $2, $3, $4, $5, $6)`,
-                    [slot.start_at, slot.ended_at, slot.day, slot.zone_id, slot.fee_id, slot.technician_id]
+                    `INSERT INTO slot (start_at, ended_at, day, fee_id, technician_id) VALUES ($1, $2, $3, $4, $5)`,
+                    [slot.start_at, slot.ended_at, slot.day, slot.fee_id, slot.technician_id]
                 );
                 totalCreated++;
             }

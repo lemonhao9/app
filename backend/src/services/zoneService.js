@@ -11,8 +11,8 @@ export async function createZone(data) {
 
 export async function updateZone(zoneId, data) {
     const zone = await zoneRepository.update(zoneId, data);
-    if(!zone) {
-        const err = new Error ('Zone introuvable');
+    if (!zone) {
+        const err = new Error('Zone introuvable');
         err.status = 404;
         throw err;
     }
@@ -21,8 +21,8 @@ export async function updateZone(zoneId, data) {
 
 export async function desactivateZone(zoneId) {
     const zone = await zoneRepository.desactivate(zoneId);
-    if(!zone) {
-        const err = new Error ('Zone introuvable');
+    if (!zone) {
+        const err = new Error('Zone introuvable');
         err.status = 404;
         throw err;
     }
@@ -31,15 +31,14 @@ export async function desactivateZone(zoneId) {
 
 export async function deleteZone(zoneId) {
     const zone = await zoneRepository.findById(zoneId);
-    if(!zone) {
-        const err = new Error ('Zone introuvable');
+    if (!zone) {
+        const err = new Error('Zone introuvable');
         err.status = 404;
         throw err;
     }
-    const { addressCount, slotCount } = await zoneRepository.countReferences(zoneId);
-    if (addressCount > 0 || slotCount > 0) {
-        const err = new Error('Zone encore référencée par des adresses ou des créneaux, suppression refusée');
-        err.status = 409;
+    const { addressCount, interventionCount } = await zoneRepository.countReferences(zoneId);
+    if (addressCount > 0 || interventionCount > 0) {
+        const err = new Error('Zone encore référencée par des adresses ou des interventions, suppression refusée'); err.status = 409;
         throw err;
     }
     await zoneRepository.remove(zoneId);
@@ -47,14 +46,14 @@ export async function deleteZone(zoneId) {
 
 export async function assignTechnician(zoneId, userId) {
     const zone = await zoneRepository.findById(zoneId);
-    if(!zone) {
-        const err = new Error ('Zone introuvable');
+    if (!zone) {
+        const err = new Error('Zone introuvable');
         err.status = 404;
         throw err;
     }
     const user = await userRepository.findById(userId);
-    if(!user || user.role !== 'technician') {
-        const err = new Error ('Technicien introuvable');
+    if (!user || user.role !== 'technician') {
+        const err = new Error('Technicien introuvable');
         err.status = 404;
         throw err;
     }
@@ -71,8 +70,8 @@ export async function findZoneForPoint(latitude, longitude) {
 
 export async function getZoneTechnicians(zoneId) {
     const zone = await zoneRepository.findById(zoneId);
-    if(!zone) {
-        const err = new Error ('Zone introuvable');
+    if (!zone) {
+        const err = new Error('Zone introuvable');
         err.status = 404;
         throw err;
     }

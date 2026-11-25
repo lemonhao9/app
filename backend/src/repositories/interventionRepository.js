@@ -3,11 +3,11 @@ import pool from '../utils/db.js';
 export async function create({ bikeId, slotId, technicianId, clientId, address, totalPrice, feePrice }, runner = pool) {
     const result = await runner.query(
         `INSERT INTO intervention (bike_id, slot_id, technician_id, client_id, address_id, total_price, fee_price,
-                                   address_name, address_city, address_postal_code, address_latitude, address_longitude)
-         VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12)
-         RETURNING intervention_id, state, total_price, is_paid, bike_id, slot_id, technician_id, client_id, address_id`,
+                                   address_name, address_city, address_postal_code, address_latitude, address_longitude, zone_id)
+         VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13)
+         RETURNING intervention_id, state, total_price, is_paid, bike_id, slot_id, technician_id, client_id, address_id, zone_id`,
         [bikeId, slotId, technicianId, clientId, address.address_id, totalPrice, feePrice,
-            address.address_name, address.city, address.postal_code, address.latitude, address.longitude]
+            address.address_name, address.city, address.postal_code, address.latitude, address.longitude, address.zone_id]
     );
     return result.rows[0];
 }
@@ -31,7 +31,7 @@ export async function addPhoto(interventionId, url, runner = pool) {
 
 export async function findById(interventionId, runner = pool) {
     const result = await runner.query(
-        `SELECT intervention_id, state, total_price, is_paid, bike_id, slot_id, technician_id, client_id, address_id
+        `SELECT intervention_id, state, total_price, is_paid, bike_id, slot_id, technician_id, client_id, address_id, zone_id
             FROM intervention WHERE intervention_id = $1`,
         [interventionId]
     );
@@ -81,7 +81,7 @@ export async function findByClientId(clientId, { sort, limit, offset }, runner =
         FROM intervention i
         LEFT JOIN bike b ON b.bike_id = i.bike_id
         JOIN slot s ON s.slot_id = i.slot_id
-        JOIN zone z ON z.zone_id = s.zone_id
+        JOIN zone z ON z.zone_id = i.zone_id
         JOIN fee f ON f.fee_id = s.fee_id
         LEFT JOIN "user" t ON t.user_id = i.technician_id
         WHERE i.client_id = $1
@@ -104,7 +104,7 @@ export async function findByTechnicianToday(technicianId, runner = pool) {
         FROM intervention i
         LEFT JOIN bike b ON b.bike_id = i.bike_id
         JOIN slot s ON s.slot_id = i.slot_id
-        JOIN zone z ON z.zone_id = s.zone_id
+        JOIN zone z ON z.zone_id = i.zone_id
         JOIN fee f ON f.fee_id = s.fee_id
         WHERE i.technician_id = $1 AND s.day = CURRENT_DATE AND i.state != 'annulée'
         ORDER BY s.start_at ASC`,
@@ -126,7 +126,7 @@ export async function findDetailById(interventionId, runner = pool) {
         FROM intervention i
         LEFT JOIN bike b ON b.bike_id = i.bike_id
         JOIN slot s ON s.slot_id = i.slot_id
-        JOIN zone z ON z.zone_id = s.zone_id
+        JOIN zone z ON z.zone_id = i.zone_id
         JOIN fee f ON f.fee_id = s.fee_id
         JOIN "user" c ON c.user_id = i.client_id
         LEFT JOIN "user" t ON t.user_id = i.technician_id
@@ -192,7 +192,7 @@ export async function findByTechnicianId(technicianId, { date, zoneId, clientId,
         FROM intervention i
         LEFT JOIN bike b ON b.bike_id = i.bike_id
         JOIN slot s ON s.slot_id = i.slot_id
-        JOIN zone z ON z.zone_id = s.zone_id
+        JOIN zone z ON z.zone_id = i.zone_id
         JOIN fee f ON f.fee_id = s.fee_id
         JOIN "user" c ON c.user_id = i.client_id
         WHERE ${conditions.join(' AND ')}
@@ -250,7 +250,7 @@ export async function findAll({ date, startAt, zoneId, clientId, bikeId, feeId, 
         FROM intervention i
         LEFT JOIN bike b ON b.bike_id = i.bike_id
         JOIN slot s ON s.slot_id = i.slot_id
-        JOIN zone z ON z.zone_id = s.zone_id
+        JOIN zone z ON z.zone_id = i.zone_id
         JOIN fee f ON f.fee_id = s.fee_id
         JOIN "user" c ON c.user_id = i.client_id
         LEFT JOIN "user" t ON t.user_id = i.technician_id
@@ -327,7 +327,7 @@ export async function findForPlanning({ start, end, technicianId, zoneId }, runn
     }
     if (zoneId) {
         params.push(zoneId);
-        conditions.push(`s.zone_id = $${params.length}`);
+        conditions.push(`i.zone_id = $${params.length}`);
     }
     const result = await runner.query(
         `SELECT
@@ -341,7 +341,7 @@ export async function findForPlanning({ start, end, technicianId, zoneId }, runn
             i.address_city AS city
          FROM intervention i
          JOIN slot s ON s.slot_id = i.slot_id
-         JOIN zone z ON z.zone_id = s.zone_id
+         JOIN zone z ON z.zone_id = i.zone_id
          JOIN fee f ON f.fee_id = s.fee_id
          JOIN "user" c ON c.user_id = i.client_id
          LEFT JOIN "user" t ON t.user_id = i.technician_id

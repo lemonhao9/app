@@ -34,13 +34,47 @@ describe('zoneRepository.findZoneForPoint', () => {
 });
 
 describe('zoneRepository.countReferences', () => {
-    it('compte les adresses et créneaux référençant la zone', async () => {
-        query.mockResolvedValue({ rows: [{ address_count: '2', slot_count: '0' }] });
+        it('compte les adresses et interventions référençant la zone', async () => {
+        query.mockResolvedValue({ rows: [{ address_count: '2', intervention_count: '0' }] });
 
         const result = await zoneRepository.countReferences(1);
 
-        expect(query).toHaveBeenCalledWith(expect.any(String), [1]);
-        expect(result).toEqual({ addressCount: 2, slotCount: 0 });
+        expect(query).toHaveBeenCalledWith(expect.stringContaining('FROM intervention'), [1]);
+        expect(result).toEqual({ addressCount: 2, interventionCount: 0 });
+    });
+});
+
+describe('zoneRepository.isTechnicianInActiveZone', () => {
+    it('vérifie le rattachement sur une zone active avec [zoneId, userId]', async () => {
+        query.mockResolvedValue({ rows: [{ '?column?': 1 }] });
+
+        const result = await zoneRepository.isTechnicianInActiveZone(2, 7);
+
+        expect(query).toHaveBeenCalledWith(expect.stringContaining('z.is_active = TRUE'), [2, 7]);
+        expect(result).toBe(true);
+    });
+
+    it("renvoie false si le technicien ne couvre pas la zone (ou qu'elle est inactive)", async () => {
+        query.mockResolvedValue({ rows: [] });
+
+        expect(await zoneRepository.isTechnicianInActiveZone(2, 7)).toBe(false);
+    });
+});
+
+describe('zoneRepository.technicianHasActiveZone', () => {
+    it('renvoie true si le technicien est positionné sur au moins une zone active', async () => {
+        query.mockResolvedValue({ rows: [{ '?column?': 1 }] });
+
+        const result = await zoneRepository.technicianHasActiveZone(7);
+
+        expect(query).toHaveBeenCalledWith(expect.stringContaining('z.is_active = TRUE'), [7]);
+        expect(result).toBe(true);
+    });
+
+    it("renvoie false s'il n'est positionné sur aucune zone active", async () => {
+        query.mockResolvedValue({ rows: [] });
+
+        expect(await zoneRepository.technicianHasActiveZone(7)).toBe(false);
     });
 });
 

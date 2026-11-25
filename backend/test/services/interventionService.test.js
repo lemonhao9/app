@@ -4,10 +4,14 @@ import * as interventionService from '../../src/services/interventionService.js'
 import * as socketUtil from '../../src/utils/socket.js';
 import * as slotRepository from '../../src/repositories/slotRepository.js';
 import * as addressRepository from '../../src/repositories/addressRepository.js';
+import * as bikeRepository from '../../src/repositories/bikeRepository.js';
+import * as zoneRepository from '../../src/repositories/zoneRepository.js';
 
 vi.mock('../../src/repositories/interventionRepository.js');
 vi.mock('../../src/repositories/slotRepository.js');
 vi.mock('../../src/repositories/addressRepository.js');
+vi.mock('../../src/repositories/bikeRepository.js');
+vi.mock('../../src/repositories/zoneRepository.js');
 vi.mock('../../src/utils/socket.js');
 
 beforeEach(() => {
@@ -154,14 +158,42 @@ describe('interventionService.reassignIntervention', () => {
         expect(addressRepository.findById).not.toHaveBeenCalled();
     });
 
-    it("lève une 409 si la zone du nouveau créneau ne correspond pas à l'adresse du client", async () => {
-        interventionRepository.findById.mockResolvedValue({ intervention_id: 1, slot_id: 4, address_id: 3, state: 'prochainement' });
-        slotRepository.findBookableInfo.mockResolvedValue({ slot_id: 5, zone_id: 2, fee_id: 1, technician_id: 7, bookable: true });
-        slotRepository.findById.mockResolvedValue({ slot_id: 4, fee_id: 1, zone_id: 4 });
+        it("lève une 409 si le technicien du nouveau créneau ne couvre pas la zone figée de l'intervention", async () => {
+        interventionRepository.findById.mockResolvedValue({ intervention_id: 1, slot_id: 4, address_id: 3, zone_id: 26, state: 'prochainement' });
+        slotRepository.findBookableInfo.mockResolvedValue({ slot_id: 5, fee_id: 1, technician_id: 7, bookable: true });
+        slotRepository.findById.mockResolvedValue({ slot_id: 4, fee_id: 1 });
+        zoneRepository.isTechnicianInActiveZone.mockResolvedValue(false);
 
         await expect(interventionService.reassignIntervention(1, { slot_id: 5 })).rejects.toMatchObject({ status: 409 });
+        expect(zoneRepository.isTechnicianInActiveZone).toHaveBeenCalledWith(26, 7);
+        expect(interventionRepository.reassign).not.toHaveBeenCalled();
     });
 
+});
+describe('interventionService.createIntervention (contrôles de zone, ADR-17)', () => {
+    const input = { bike_id: 3, slot_id: 5, address_id: 9, product_ids: [] };
+
+    beforeEach(() => {
+        slotRepository.findBookableInfo.mockResolvedValue({ slot_id: 5, fee_id: 1, technician_id: 7, bookable: true });
+        bikeRepository.findById.mockResolvedValue({ bike_id: 3, user_id: 1 });
+    });
+
+    it("lève une 409 si l'adresse n'est dans aucune zone desservie", async () => {
+        addressRepository.findById.mockResolvedValue({ address_id: 9, user_id: 1, zone_id: null });
+
+        await expect(interventionService.createIntervention(1, input)).rejects.toMatchObject({ status: 409 });
+        expect(zoneRepository.isTechnicianInActiveZone).not.toHaveBeenCalled();
+        expect(interventionRepository.create).not.toHaveBeenCalled();
+    });
+
+    it("lève une 409 si le technicien du créneau ne couvre pas la zone de l'adresse", async () => {
+        addressRepository.findById.mockResolvedValue({ address_id: 9, user_id: 1, zone_id: 26 });
+        zoneRepository.isTechnicianInActiveZone.mockResolvedValue(false);
+
+        await expect(interventionService.createIntervention(1, input)).rejects.toMatchObject({ status: 409 });
+        expect(zoneRepository.isTechnicianInActiveZone).toHaveBeenCalledWith(26, 7);
+        expect(interventionRepository.create).not.toHaveBeenCalled();
+    });
 });
 
 describe('interventionService.getMyInterventions', () => {

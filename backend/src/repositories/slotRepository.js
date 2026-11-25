@@ -2,21 +2,33 @@ import { query } from '../utils/db.js';
 
 export async function findByZoneFeeDay(zoneId, feeId, day) {
     const result = await query(
-        `SELECT
-            s.slot_id, s.start_at, s.ended_at,
-            (
-                NOT EXISTS (
-                    SELECT 1 FROM intervention i
-                    WHERE i.slot_id = s.slot_id AND i.state != 'annulée'
-                )
-                AND (s.day + s.start_at) > NOW() + INTERVAL '2 hours'
-            ) AS available
-        FROM slot s
-        JOIN "user" t ON t.user_id = s.technician_id AND t.is_active = TRUE
-        JOIN zone z ON z.zone_id = s.zone_id AND z.is_active = TRUE
-        JOIN positionner p ON p.zone_id = s.zone_id AND p.user_id = s.technician_id
-        WHERE s.zone_id = $1 AND s.fee_id = $2 AND s.day = $3
-        ORDER BY s.start_at`,
+        `WITH candidates AS (
+            SELECT
+                s.slot_id, s.start_at, s.ended_at,
+                (
+                    NOT EXISTS (
+                        SELECT 1 FROM intervention i
+                        WHERE i.slot_id = s.slot_id AND i.state != 'annulée'
+                    )
+                    AND (s.day + s.start_at) > NOW() + INTERVAL '2 hours'
+                ) AS available,
+                (
+                    SELECT COUNT(*) FROM intervention i
+                    JOIN slot s2 ON s2.slot_id = i.slot_id
+                    WHERE s2.technician_id = s.technician_id AND s2.day = s.day AND i.state != 'annulée'
+                ) AS day_load
+            FROM slot s
+            JOIN "user" t ON t.user_id = s.technician_id AND t.is_active = TRUE
+            WHERE s.fee_id = $2 AND s.day = $3
+              AND EXISTS (
+                  SELECT 1 FROM positionner p
+                  JOIN zone z ON z.zone_id = p.zone_id AND z.is_active = TRUE
+                  WHERE p.zone_id = $1 AND p.user_id = s.technician_id
+              )
+        )
+        SELECT DISTINCT ON (start_at, ended_at) slot_id, start_at, ended_at, available
+        FROM candidates
+        ORDER BY start_at, ended_at, available DESC, day_load, slot_id`,
         [zoneId, feeId, day]
     );
     return result.rows;
@@ -25,14 +37,9 @@ export async function findByZoneFeeDay(zoneId, feeId, day) {
 export async function findBookableInfo(slotId) {
     const result = await query(
         `SELECT
-            s.slot_id, s.zone_id, s.fee_id, s.technician_id, s.day, s.start_at,
+            s.slot_id, s.fee_id, s.technician_id, s.day, s.start_at,
             (
                 t.is_active
-                AND z.is_active
-                AND EXISTS (
-                    SELECT 1 FROM positionner p
-                    WHERE p.zone_id = s.zone_id AND p.user_id = s.technician_id
-                )
                 AND NOT EXISTS (
                     SELECT 1 FROM intervention i
                     WHERE i.slot_id = s.slot_id AND i.state != 'annulée'
@@ -41,7 +48,6 @@ export async function findBookableInfo(slotId) {
             ) AS bookable
         FROM slot s
         JOIN "user" t ON t.user_id = s.technician_id
-        JOIN zone z ON z.zone_id = s.zone_id
         WHERE s.slot_id = $1`,
         [slotId]
     );
@@ -64,12 +70,12 @@ export async function findOverlapping(technicianId, day, startAt, endedAt) {
     return result.rows.length > 0;
 }
 
-export async function create({ day, startAt, endedAt, zoneId, feeId, technicianId }) {
+export async function create({ day, startAt, endedAt, feeId, technicianId }) {
     const result = await query(
-        `INSERT INTO slot (day, start_at, ended_at, zone_id, fee_id, technician_id)
-         VALUES ($1, $2, $3, $4, $5, $6)
-         RETURNING slot_id, day, start_at, ended_at, zone_id, fee_id, technician_id`,
-        [day, startAt, endedAt, zoneId, feeId, technicianId]
+        `INSERT INTO slot (day, start_at, ended_at, fee_id, technician_id)
+         VALUES ($1, $2, $3, $4, $5)
+         RETURNING slot_id, day, start_at, ended_at, fee_id, technician_id`,
+        [day, startAt, endedAt, feeId, technicianId]
     );
     return result.rows[0];
 }

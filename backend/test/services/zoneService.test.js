@@ -75,15 +75,15 @@ describe('zoneService.deleteZone', () => {
 
     it('lève une 409 si des adresses référencent encore la zone', async () => {
         zoneRepository.findById.mockResolvedValue(baseZone);
-        zoneRepository.countReferences.mockResolvedValue({ addressCount: 2, slotCount: 0 });
+        zoneRepository.countReferences.mockResolvedValue({ addressCount: 2, interventionCount: 0 });
 
         await expect(zoneService.deleteZone(1)).rejects.toMatchObject({ status: 409 });
         expect(zoneRepository.remove).not.toHaveBeenCalled();
     });
 
-    it('lève une 409 si des créneaux référencent encore la zone', async () => {
+    it('lève une 409 si des interventions référencent encore la zone', async () => {
         zoneRepository.findById.mockResolvedValue(baseZone);
-        zoneRepository.countReferences.mockResolvedValue({ addressCount: 0, slotCount: 1 });
+        zoneRepository.countReferences.mockResolvedValue({ addressCount: 0, interventionCount: 1 });
 
         await expect(zoneService.deleteZone(1)).rejects.toMatchObject({ status: 409 });
         expect(zoneRepository.remove).not.toHaveBeenCalled();
@@ -91,7 +91,7 @@ describe('zoneService.deleteZone', () => {
 
     it('supprime la zone si aucune référence ne subsiste', async () => {
         zoneRepository.findById.mockResolvedValue(baseZone);
-        zoneRepository.countReferences.mockResolvedValue({ addressCount: 0, slotCount: 0 });
+        zoneRepository.countReferences.mockResolvedValue({ addressCount: 0, interventionCount: 0 });
         zoneRepository.remove.mockResolvedValue({ zone_id: 1 });
 
         await zoneService.deleteZone(1);
