@@ -9,7 +9,7 @@ import { authenticateSocket } from './middlewares/authenticateSocket.js';
 import router from './routes/index.js';
 import path from 'node:path';
 import * as interventionService from './services/interventionService.js';
-
+import { startSlotScheduler } from './services/slotScheduler.js';
 
 const app = express();
 const httpServer = createServer(app);
@@ -75,6 +75,7 @@ io.on('connection', (socket) => {
 const PORT = process.env.PORT || 3000;
 httpServer.listen(PORT, () => {
   console.log(`API démarrée sur le port ${PORT}`);
+  startSlotScheduler();
 });
 
 export { io };

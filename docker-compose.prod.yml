@@ -1,6 +1,11 @@
 services:
   api:
     restart: always
+    logging:
+      driver: json-file
+      options:
+        max-size: "10m"
+        max-file: "5"
     command: sh -c "npm run migrate && npm start"
     environment:
       NODE_ENV: production
