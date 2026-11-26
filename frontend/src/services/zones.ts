@@ -42,6 +42,13 @@ export async function deactivateZone(id: number) {
     }));
 }
 
+export async function activateZone(id: number): Promise<{ message: string; attached_addresses: number }> {
+    return handle(await fetch(`${BASE}/zones/${id}/activate`, {
+        method: 'PATCH',
+        headers: authHeaders(),
+    }));
+}
+
 export async function deleteZonePermanently(id: number) {
     return handle(await fetch(`${BASE}/zones/${id}/permanent`, {
         method: 'DELETE',

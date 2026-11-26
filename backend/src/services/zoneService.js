@@ -1,5 +1,7 @@
 import * as zoneRepository from '../repositories/zoneRepository.js';
 import * as userRepository from '../repositories/userRepository.js';
+import { getClient } from '../utils/db.js';
+import { syncSlotsInBackground } from './slotGenerationService.js';
 
 export async function getAllZones() {
     return await zoneRepository.findAll();
@@ -27,6 +29,29 @@ export async function desactivateZone(zoneId) {
         throw err;
     }
     return zone;
+}
+
+export async function activateZone(zoneId) {
+    const client = await getClient();
+    let attachedAddresses;
+    try {
+        await client.query('BEGIN');
+        const zone = await zoneRepository.activate(zoneId, client);
+        if (!zone) {
+            const err = new Error('Zone introuvable');
+            err.status = 404;
+            throw err;
+        }
+        attachedAddresses = await zoneRepository.attachOrphanAddresses(zoneId, client);
+        await client.query('COMMIT');
+    } catch (err) {
+        await client.query('ROLLBACK');
+        throw err;
+    } finally {
+        client.release();
+    }
+    syncSlotsInBackground('réactivation de la zone');
+    return { zone_id: zoneId, attachedAddresses };
 }
 
 export async function deleteZone(zoneId) {
@@ -58,6 +83,7 @@ export async function assignTechnician(zoneId, userId) {
         throw err;
     }
     await zoneRepository.assignTechnician(zoneId, userId);
+    syncSlotsInBackground("positionnement d'un technicien");
 }
 
 export async function unassignTechnician(zoneId, userId) {

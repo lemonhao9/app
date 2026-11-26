@@ -6,6 +6,7 @@ import * as interventionRepository from '../../src/repositories/interventionRepo
 import * as addressRepository from '../../src/repositories/addressRepository.js';
 import * as db from '../../src/utils/db.js';
 import * as fileStorage from '../../src/utils/fileStorage.js';
+import * as slotGenerationService from '../../src/services/slotGenerationService.js';
 import * as userService from '../../src/services/userService.js';
 
 vi.mock('../../src/repositories/userRepository.js');
@@ -14,6 +15,7 @@ vi.mock('../../src/repositories/interventionRepository.js');
 vi.mock('../../src/repositories/addressRepository.js');
 vi.mock('../../src/utils/db.js');
 vi.mock('../../src/utils/fileStorage.js');
+vi.mock('../../src/services/slotGenerationService.js');
 vi.mock('bcryptjs');
 
 
@@ -344,3 +346,23 @@ describe('userService.deactivateUser / activateUser', () => {
         expect(userRepository.setActive).not.toHaveBeenCalled();
     });
 });
+
+    it('relance la génération des créneaux quand un technicien est réactivé', async () => {
+        userRepository.findById.mockResolvedValue({ ...currentUser, is_active: false });
+        userRepository.setActive.mockResolvedValue({ ...currentUser, is_active: true });
+
+        const user = await userService.activateUser(1);
+
+        expect(userRepository.setActive).toHaveBeenCalledWith(1, true);
+        expect(slotGenerationService.syncSlotsInBackground).toHaveBeenCalledTimes(1);
+        expect(user.is_active).toBe(true);
+    });
+
+    it("ne relance rien quand le compte réactivé n'est pas un technicien", async () => {
+        userRepository.findById.mockResolvedValue({ ...currentUser, role: 'client', is_active: false });
+        userRepository.setActive.mockResolvedValue({ ...currentUser, role: 'client', is_active: true });
+
+        await userService.activateUser(1);
+
+        expect(slotGenerationService.syncSlotsInBackground).not.toHaveBeenCalled();
+    });

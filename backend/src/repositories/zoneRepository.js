@@ -34,6 +34,29 @@ export async function desactivate(zoneId, runner = pool) {
     return results.rows[0] ?? null;
 }
 
+export async function activate(zoneId, runner = pool) {
+    const results = await runner.query(
+        `UPDATE zone SET is_active = true WHERE zone_id = $1 RETURNING zone_id`,
+        [zoneId]
+    );
+    return results.rows[0] ?? null;
+}
+
+export async function attachOrphanAddresses(zoneId, runner = pool) {
+    const results = await runner.query(
+        `UPDATE address a
+         SET zone_id = z.zone_id
+         FROM zone z
+         WHERE z.zone_id = $1 AND z.is_active = TRUE AND a.zone_id IS NULL
+           AND ST_Contains(
+               ST_SetSRID(ST_GeomFromGeoJSON(z.geojson->'geometry'), 4326),
+               ST_SetSRID(ST_MakePoint(a.longitude, a.latitude), 4326)
+           )`,
+        [zoneId]
+    );
+    return results.rowCount;
+}
+
 export async function countReferences(zoneId) {
     const result = await query(
         `SELECT

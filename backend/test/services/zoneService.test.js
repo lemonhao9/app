@@ -1,10 +1,14 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import * as zoneRepository from '../../src/repositories/zoneRepository.js';
 import * as userRepository from '../../src/repositories/userRepository.js';
+import * as db from '../../src/utils/db.js';
+import * as slotGenerationService from '../../src/services/slotGenerationService.js';
 import * as zoneService from '../../src/services/zoneService.js';
 
 vi.mock('../../src/repositories/zoneRepository.js');
 vi.mock('../../src/repositories/userRepository.js');
+vi.mock('../../src/utils/db.js');
+vi.mock('../../src/services/slotGenerationService.js');
 
 const baseZone = { zone_id: 1, name: 'Lyon 1er', color: '#3388ff', is_active: true };
 
@@ -65,6 +69,51 @@ describe('zoneService.desactivateZone', () => {
     });
 });
 
+describe('zoneService.activateZone', () => {
+    let client;
+
+    beforeEach(() => {
+        client = { query: vi.fn().mockResolvedValue({}), release: vi.fn() };
+        db.getClient.mockResolvedValue(client);
+    });
+
+    it('lève une 404 et annule la transaction si la zone est introuvable', async () => {
+        zoneRepository.activate.mockResolvedValue(null);
+
+        await expect(zoneService.activateZone(99)).rejects.toMatchObject({ status: 404 });
+
+        expect(client.query).toHaveBeenCalledWith('ROLLBACK');
+        expect(zoneRepository.attachOrphanAddresses).not.toHaveBeenCalled();
+        expect(slotGenerationService.syncSlotsInBackground).not.toHaveBeenCalled();
+        expect(client.release).toHaveBeenCalled();
+    });
+
+    it('réactive la zone, y rattache les adresses sans zone puis relance la génération des créneaux', async () => {
+        zoneRepository.activate.mockResolvedValue({ zone_id: 1 });
+        zoneRepository.attachOrphanAddresses.mockResolvedValue(3);
+
+        const result = await zoneService.activateZone(1);
+
+        expect(zoneRepository.activate).toHaveBeenCalledWith(1, client);
+        expect(zoneRepository.attachOrphanAddresses).toHaveBeenCalledWith(1, client);
+        expect(client.query).toHaveBeenCalledWith('COMMIT');
+        expect(slotGenerationService.syncSlotsInBackground).toHaveBeenCalledTimes(1);
+        expect(result).toEqual({ zone_id: 1, attachedAddresses: 3 });
+        expect(client.release).toHaveBeenCalled();
+    });
+
+    it('annule la réactivation si le rattachement des adresses échoue', async () => {
+        zoneRepository.activate.mockResolvedValue({ zone_id: 1 });
+        zoneRepository.attachOrphanAddresses.mockRejectedValue(new Error('PostGIS'));
+
+        await expect(zoneService.activateZone(1)).rejects.toThrow('PostGIS');
+
+        expect(client.query).toHaveBeenCalledWith('ROLLBACK');
+        expect(client.query).not.toHaveBeenCalledWith('COMMIT');
+        expect(slotGenerationService.syncSlotsInBackground).not.toHaveBeenCalled();
+    });
+});
+
 describe('zoneService.deleteZone', () => {
     it('lève une 404 si la zone est introuvable', async () => {
         zoneRepository.findById.mockResolvedValue(null);
@@ -113,6 +162,7 @@ describe('zoneService.assignTechnician', () => {
 
         await expect(zoneService.assignTechnician(1, 1)).rejects.toMatchObject({ status: 404 });
         expect(zoneRepository.assignTechnician).not.toHaveBeenCalled();
+        expect(slotGenerationService.syncSlotsInBackground).not.toHaveBeenCalled();
     });
 
     it('assigne le technicien à la zone', async () => {
@@ -122,6 +172,7 @@ describe('zoneService.assignTechnician', () => {
         await zoneService.assignTechnician(1, 2);
 
         expect(zoneRepository.assignTechnician).toHaveBeenCalledWith(1, 2);
+        expect(slotGenerationService.syncSlotsInBackground).toHaveBeenCalledTimes(1);
     });
 });
 

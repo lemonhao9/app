@@ -45,6 +45,15 @@ export async function desactivateZone(req, res, next) {
     }
 }
 
+export async function activateZone(req, res, next) {
+    try {
+        const { attachedAddresses } = await zoneService.activateZone(Number(req.params.id));
+        res.json({ message: 'Zone réactivée avec succès', attached_addresses: attachedAddresses });
+    } catch (err) {
+        next(err);
+    }
+}
+
 export async function deleteZone(req, res, next) {
     try {
         await zoneService.deleteZone(Number(req.params.id));

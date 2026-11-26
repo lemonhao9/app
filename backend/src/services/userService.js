@@ -7,6 +7,7 @@ import { getClient } from '../utils/db.js'
 import * as bikeRepository from '../repositories/bikeRepository.js';
 import * as interventionRepository from '../repositories/interventionRepository.js';
 import * as addressRepository from '../repositories/addressRepository.js';
+import { syncSlotsInBackground } from './slotGenerationService.js';
 
 const SALT_ROUNDS = 12;
 const TEMP_PASSWORD_ALPHABET = 'ABCDEFGHJKLMNPQRSTUVWXYZabcdefghijkmnpqrstuvwxyz23456789';
@@ -135,6 +136,7 @@ export async function activateUser(userId) {
     const user = await findManageableUser(userId);
     if (user.is_active) return toSafeUser(user);
     const updated = await userRepository.setActive(userId, true);
+    if (updated.role === 'technician') syncSlotsInBackground("réactivation d'un technicien");
     return toSafeUser(updated);
 }
 
@@ -176,8 +178,8 @@ export async function deleteAccount(userId) {
 
 export async function updateProfile(userId, data) {
     const current = await userRepository.findById(userId);
-    if(!current) {
-        const err = new Error ('Utilisateur introuvable');
+    if (!current) {
+        const err = new Error('Utilisateur introuvable');
         err.status = 404;
         throw err;
     }

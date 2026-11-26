@@ -2,7 +2,7 @@ import { useEffect, useState, useCallback, useRef } from 'react';
 import { MapContainer, TileLayer } from 'react-leaflet';
 import type L from 'leaflet';
 import { GeomanLayer, type GeomanLayerHandle } from '../components/GeomanLayer';
-import { getZones, createZone, deactivateZone, deleteZonePermanently, getZoneTechnicians, getTechnicians, assignTechnician, unassignTechnician, updateZone, type Zone, type Technician } from '../services/zones';
+import { getZones, createZone, deactivateZone, activateZone, deleteZonePermanently, getZoneTechnicians, getTechnicians, assignTechnician, unassignTechnician, updateZone, type Zone, type Technician } from '../services/zones';
 import { Button } from '../components/ui/button';
 
 function messageOf(err: unknown, fallback: string): string {
@@ -23,6 +23,7 @@ export function AdminZones() {
     const geomanRef = useRef<GeomanLayerHandle>(null);
     const [editingZoneId, setEditingZoneId] = useState<number | null>(null);
     const [actionError, setActionError] = useState<string | null>(null);
+    const [actionInfo, setActionInfo] = useState<string | null>(null);
 
     const refresh = useCallback(() => {
         getZones()
@@ -56,8 +57,7 @@ export function AdminZones() {
     }
 
     async function handleDeactivate(id: number) {
-        if (!window.confirm('Désactiver cette zone ? Ses créneaux ne seront plus proposés à la réservation, les interventions déjà prévues sont maintenues. Une zone désactivée ne peut pas être réactivée.')) return;
-        setActionError(null);
+        if (!window.confirm('Désactiver cette zone ? Ses créneaux ne seront plus proposés à la réservation, les interventions déjà prévues sont maintenues. Elle pourra être réactivée plus tard.')) return; setActionError(null);
         try {
             await deactivateZone(id);
             if (editingZoneId === id) setEditingZoneId(null);
@@ -65,6 +65,20 @@ export function AdminZones() {
             refresh();
         } catch (err) {
             setActionError(messageOf(err, 'Impossible de désactiver la zone.'));
+        }
+    }
+
+    async function handleActivate(id: number) {
+        setActionError(null);
+        setActionInfo(null);
+        try {
+            const { attached_addresses } = await activateZone(id);
+            setActionInfo(attached_addresses > 0
+                ? `Zone réactivée : ${attached_addresses} adresse(s) client y ont été rattachées. Les créneaux de ses techniciens sont en cours de génération.`
+                : 'Zone réactivée. Les créneaux de ses techniciens sont en cours de génération.');
+            refresh();
+        } catch (err) {
+            setActionError(messageOf(err, 'Impossible de réactiver la zone.'));
         }
     }
 
@@ -146,141 +160,149 @@ export function AdminZones() {
 
     return (
         <>
-        <h1 className="text-2xl font-bold mb-6 text-center">Gestion des zones</h1>
-        {actionError && <p className="text-sm text-red-600 mb-4 text-center">{actionError}</p>}
-        <div className="flex gap-8">
-            <aside className="w-64 shrink-0 flex flex-col gap-6">
-                <div>
-                    <h2 className="font-semibold mb-2">Nouvelle zone</h2>
-                    {pending ? (
-                        <form onSubmit={handleSubmit} className="flex flex-col gap-2">
-                            <label className="flex flex-col text-sm">Nom
-                                <input value={name} onChange={e => setName(e.target.value)} required />
-                            </label>
-                            <label className="flex flex-col text-sm">Couleur
-                                <input type="color" value={color} onChange={e => setColor(e.target.value)} />
-                            </label>
-                            <div className="flex gap-2">
-                                <Button type="submit">Créer la zone</Button>
-                                <Button
-                                    type="button"
-                                    variant="outline"
-                                    onClick={() => { geomanRef.current?.clearPending(); setPending(null); }}
-                                >
-                                    Annuler
-                                </Button>
-                            </div>
-                        </form>
-                    ) : (
-                        <p className="text-sm text-gray-500">Dessinez une zone sur la carte pour la créer.</p>
+            <h1 className="text-2xl font-bold mb-6 text-center">Gestion des zones</h1>
+            {actionError && <p className="text-sm text-red-600 mb-4 text-center">{actionError}</p>}
+            {actionInfo && <p className="text-sm text-green-700 mb-4 text-center">{actionInfo}</p>}
+            <div className="flex gap-8">
+                <aside className="w-64 shrink-0 flex flex-col gap-6">
+                    <div>
+                        <h2 className="font-semibold mb-2">Nouvelle zone</h2>
+                        {pending ? (
+                            <form onSubmit={handleSubmit} className="flex flex-col gap-2">
+                                <label className="flex flex-col text-sm">Nom
+                                    <input value={name} onChange={e => setName(e.target.value)} required />
+                                </label>
+                                <label className="flex flex-col text-sm">Couleur
+                                    <input type="color" value={color} onChange={e => setColor(e.target.value)} />
+                                </label>
+                                <div className="flex gap-2">
+                                    <Button type="submit">Créer la zone</Button>
+                                    <Button
+                                        type="button"
+                                        variant="outline"
+                                        onClick={() => { geomanRef.current?.clearPending(); setPending(null); }}
+                                    >
+                                        Annuler
+                                    </Button>
+                                </div>
+                            </form>
+                        ) : (
+                            <p className="text-sm text-gray-500">Dessinez une zone sur la carte pour la créer.</p>
+                        )}
+                    </div>
+
+                    <div>
+                        <h2 className="font-semibold mb-2">Assignation des techniciens</h2>
+                        <select
+                            value={selectedZoneId ?? ''}
+                            onChange={e => setSelectedZoneId(Number(e.target.value) || null)}
+                            className="border px-2 py-1 text-sm w-full mb-2"
+                        >
+                            <option value="">Choisir une zone…</option>
+                            {activeZones.map(zone => (
+                                <option key={zone.zone_id} value={zone.zone_id}>{zone.name}</option>
+                            ))}
+                        </select>
+
+                        {selectedZoneId ? (
+                            <>
+                                <ul className="space-y-1 mb-2">
+                                    {assignedTechnicians.map(t => (
+                                        <li key={t.user_id} className="flex items-center justify-between text-sm">
+                                            <span>{t.name}</span>
+                                            <Button variant="destructive" size="sm" onClick={() => handleUnassign(t.user_id)}>Désassigner</Button>
+                                        </li>
+                                    ))}
+                                    {assignedTechnicians.length === 0 && <li className="text-sm text-gray-500">Aucun technicien assigné</li>}
+                                </ul>
+                                <div className="flex gap-2">
+                                    <select value={selectedTechnicianId || ''} onChange={e => setSelectedTechnicianId(Number(e.target.value) || null)} className="border px-2 py-1 text-sm">
+                                        <option value="">Sélectionner un technicien</option>
+                                        {avaibleTechnicians.map(t => (
+                                            <option key={t.user_id} value={t.user_id}>{t.name}</option>
+                                        ))}
+                                    </select>
+                                    <Button onClick={handleAssign} disabled={!selectedTechnicianId} size="sm">Assigner</Button>
+                                </div>
+                            </>
+                        ) : (
+                            <p className="text-sm text-gray-500">Sélectionnez une zone pour gérer ses techniciens.</p>
+                        )}
+                    </div>
+                </aside>
+
+
+                <div className="flex-1">
+                    <MapContainer center={[45.7640, 4.8357]} zoom={13} style={{ height: '450px' }}>
+                        <TileLayer url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png" attribution="&copy; OpenStreetMap contributors" />
+                        <GeomanLayer ref={geomanRef} zones={activeZones} editingZoneId={editingZoneId} onCreate={handleCreate} />
+                    </MapContainer>
+                    {editingZoneId && (
+                        <div className="mt-2 flex gap-2 items-center">
+                            <span className="text-sm text-gray-600">Modifications en cours...</span>
+                            <Button size="sm" onClick={handleSaveEdit}>Enregistrer</Button>
+                            <Button size="sm" variant="outline" onClick={handleCancelEdit}>Annuler</Button>
+                        </div>
                     )}
                 </div>
 
-                <div>
-                    <h2 className="font-semibold mb-2">Assignation des techniciens</h2>
-                    <select
-                        value={selectedZoneId ?? ''}
-                        onChange={e => setSelectedZoneId(Number(e.target.value) || null)}
-                        className="border px-2 py-1 text-sm w-full mb-2"
-                    >
-                        <option value="">Choisir une zone…</option>
+                <aside className="w-64 shrink-0">
+                    <h2 className="font-semibold mb-2">Liste des zones actives</h2>
+                    <ul className="space-y-1">
                         {activeZones.map(zone => (
-                            <option key={zone.zone_id} value={zone.zone_id}>{zone.name}</option>
-                        ))}
-                    </select>
+                            <li
+                                key={zone.zone_id}
+                                onClick={() => setSelectedZoneId(zone.zone_id)}
+                                className={`flex items-center justify-between text-sm px-2 py-1 rounded cursor-pointer ${selectedZoneId === zone.zone_id ? 'bg-gray-200' : ''}`}
+                            >
+                                <span style={{ color: zone.color || undefined }}>{zone.name}</span>
+                                <Button
+                                    variant="outline"
+                                    size="sm"
+                                    onClick={(e) => { e.stopPropagation(); setEditingZoneId(zone.zone_id); }}
+                                >
+                                    Modifier
+                                </Button>
 
-                    {selectedZoneId ? (
-                        <>
-                            <ul className="space-y-1 mb-2">
-                                {assignedTechnicians.map(t => (
-                                    <li key={t.user_id} className="flex items-center justify-between text-sm">
-                                        <span>{t.name}</span>
-                                        <Button variant="destructive" size="sm" onClick={() => handleUnassign(t.user_id)}>Désassigner</Button>
+                                <Button
+                                    variant="destructive"
+                                    size="sm"
+                                    onClick={(e) => { e.stopPropagation(); handleDeactivate(zone.zone_id); }}
+                                >
+                                    Désactiver
+                                </Button>
+                            </li>
+                        ))}
+                    </ul>
+
+                    {inactiveZones.length > 0 && (
+                        <div className="mt-6">
+                            <h2 className="font-semibold mb-2">Zones désactivées</h2>
+                            <ul className="space-y-1">
+                                {inactiveZones.map(zone => (
+                                    <li key={zone.zone_id} className="flex items-center justify-between text-sm px-2 py-1">
+                                        <span className="text-gray-500">{zone.name}</span>
+                                        <Button
+                                            variant="outline"
+                                            size="sm"
+                                            onClick={() => handleActivate(zone.zone_id)}
+                                        >
+                                            Réactiver
+                                        </Button>
+                                        <Button
+                                            variant="destructive"
+                                            size="sm"
+                                            onClick={() => handleDeletePermanently(zone.zone_id)}
+                                        >
+                                            Supprimer définitivement
+                                        </Button>
                                     </li>
                                 ))}
-                                {assignedTechnicians.length === 0 && <li className="text-sm text-gray-500">Aucun technicien assigné</li>}
                             </ul>
-                            <div className="flex gap-2">
-                                <select value={selectedTechnicianId || ''} onChange={e => setSelectedTechnicianId(Number(e.target.value) || null)} className="border px-2 py-1 text-sm">
-                                    <option value="">Sélectionner un technicien</option>
-                                    {avaibleTechnicians.map(t => (
-                                        <option key={t.user_id} value={t.user_id}>{t.name}</option>
-                                    ))}
-                                </select>
-                                <Button onClick={handleAssign} disabled={!selectedTechnicianId} size="sm">Assigner</Button>
-                            </div>
-                        </>
-                    ) : (
-                        <p className="text-sm text-gray-500">Sélectionnez une zone pour gérer ses techniciens.</p>
+                        </div>
                     )}
-                </div>
-            </aside>
-
-
-            <div className="flex-1">
-                <MapContainer center={[45.7640, 4.8357]} zoom={13} style={{ height: '450px' }}>
-                    <TileLayer url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png" attribution="&copy; OpenStreetMap contributors" />
-                    <GeomanLayer ref={geomanRef} zones={activeZones} editingZoneId={editingZoneId} onCreate={handleCreate} />
-                </MapContainer>
-                {editingZoneId && (
-                    <div className="mt-2 flex gap-2 items-center">
-                        <span className="text-sm text-gray-600">Modifications en cours...</span>
-                        <Button size="sm" onClick={handleSaveEdit}>Enregistrer</Button>
-                        <Button size="sm" variant="outline" onClick={handleCancelEdit}>Annuler</Button>
-                    </div>
-                )}
+                </aside>
             </div>
-
-            <aside className="w-64 shrink-0">
-                <h2 className="font-semibold mb-2">Liste des zones actives</h2>
-                <ul className="space-y-1">
-                    {activeZones.map(zone => (
-                        <li
-                            key={zone.zone_id}
-                            onClick={() => setSelectedZoneId(zone.zone_id)}
-                            className={`flex items-center justify-between text-sm px-2 py-1 rounded cursor-pointer ${selectedZoneId === zone.zone_id ? 'bg-gray-200' : ''}`}
-                        >
-                            <span style={{ color: zone.color || undefined }}>{zone.name}</span>
-                            <Button
-                                variant="outline"
-                                size="sm"
-                                onClick={(e) => { e.stopPropagation(); setEditingZoneId(zone.zone_id); }}
-                            >
-                                Modifier
-                            </Button>
-
-                            <Button
-                                variant="destructive"
-                                size="sm"
-                                onClick={(e) => { e.stopPropagation(); handleDeactivate(zone.zone_id); }}
-                            >
-                                Désactiver
-                            </Button>
-                        </li>
-                    ))}
-                </ul>
-
-                {inactiveZones.length > 0 && (
-                    <div className="mt-6">
-                        <h2 className="font-semibold mb-2">Zones désactivées</h2>
-                        <ul className="space-y-1">
-                            {inactiveZones.map(zone => (
-                                <li key={zone.zone_id} className="flex items-center justify-between text-sm px-2 py-1">
-                                    <span className="text-gray-500">{zone.name}</span>
-                                    <Button
-                                        variant="destructive"
-                                        size="sm"
-                                        onClick={() => handleDeletePermanently(zone.zone_id)}
-                                    >
-                                        Supprimer définitivement
-                                    </Button>
-                                </li>
-                            ))}
-                        </ul>
-                    </div>
-                )}
-            </aside>
-        </div>
         </>
     );
 }
