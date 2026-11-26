@@ -8,6 +8,7 @@ import * as bikeRepository from '../../src/repositories/bikeRepository.js';
 import * as zoneRepository from '../../src/repositories/zoneRepository.js';
 import * as feesRepository from '../../src/repositories/feesRepository.js';
 import * as productsRepository from '../../src/repositories/productsRepository.js';
+import * as db from '../../src/utils/db.js';
 
 vi.mock('../../src/repositories/interventionRepository.js');
 vi.mock('../../src/repositories/slotRepository.js');
@@ -17,6 +18,7 @@ vi.mock('../../src/repositories/zoneRepository.js');
 vi.mock('../../src/repositories/feesRepository.js');
 vi.mock('../../src/repositories/productsRepository.js');
 vi.mock('../../src/utils/socket.js');
+vi.mock('../../src/utils/db.js');
 
 beforeEach(() => {
     vi.resetAllMocks();
@@ -230,7 +232,7 @@ describe('interventionService.createIntervention (contrôles de zone, ADR-17)', 
         expect(productsRepository.findByIds).toHaveBeenCalledWith([4, 8]);
         expect(interventionRepository.create).not.toHaveBeenCalled();
     });
-    
+
     it("lève une 409 si l'adresse n'est dans aucune zone desservie", async () => {
         addressRepository.findById.mockResolvedValue({ address_id: 9, user_id: 1, zone_id: null });
 
@@ -472,5 +474,131 @@ describe('interventionService.getPlanning', () => {
 
         expect(interventionRepository.findForPlanning).toHaveBeenCalledWith({ start: '2026-11-09', end: '2026-11-16', technicianId: 3, zoneId: undefined });
         expect(result).toEqual({ interventions: [{ intervention_id: 1 }] });
+    });
+});
+
+describe('interventionService.createIntervention — transaction', () => {
+    const input = { bike_id: 3, slot_id: 5, address_id: 9, product_ids: [4, 8] };
+    const address = { address_id: 9, user_id: 1, zone_id: 26, address_name: '1 rue de Lyon', city: 'Lyon' };
+    const products = [{ product_id: 4, price: '9.90' }, { product_id: 8, price: '15.00' }];
+    let client;
+
+    beforeEach(() => {
+        client = { query: vi.fn().mockResolvedValue({}), release: vi.fn() };
+        db.getClient.mockResolvedValue(client);
+        slotRepository.findBookableInfo.mockResolvedValue({ slot_id: 5, fee_id: 1, technician_id: 7, bookable: true });
+        bikeRepository.findById.mockResolvedValue({ bike_id: 3, user_id: 1 });
+        addressRepository.findById.mockResolvedValue(address);
+        zoneRepository.isTechnicianInActiveZone.mockResolvedValue(true);
+        feesRepository.findById.mockResolvedValue({ fee_id: 1, price_fee: '30.00', is_active: true });
+        productsRepository.findByIds.mockResolvedValue(products);
+        interventionRepository.create.mockResolvedValue({ intervention_id: 42, zone_id: 26 });
+    });
+
+    it("crée l'intervention et ses produits dans une transaction validée, avec les prix figés", async () => {
+        const result = await interventionService.createIntervention(1, input);
+
+        expect(client.query).toHaveBeenNthCalledWith(1, 'BEGIN');
+        expect(interventionRepository.create).toHaveBeenCalledWith({
+            bikeId: 3,
+            slotId: 5,
+            technicianId: 7,
+            clientId: 1,
+            address,
+            totalPrice: 54.9,
+            feePrice: '30.00',
+        }, client);
+        expect(interventionRepository.addProduct).toHaveBeenNthCalledWith(1, 42, 4, '9.90', client);
+        expect(interventionRepository.addProduct).toHaveBeenNthCalledWith(2, 42, 8, '15.00', client);
+        expect(client.query).toHaveBeenLastCalledWith('COMMIT');
+        expect(client.release).toHaveBeenCalledTimes(1);
+        expect(result).toEqual({ intervention_id: 42, zone_id: 26 });
+    });
+
+    it('transforme un créneau réservé entre-temps (23505) en 409 et annule la transaction', async () => {
+        interventionRepository.create.mockRejectedValue(Object.assign(new Error('duplicate key'), { code: '23505' }));
+
+        await expect(interventionService.createIntervention(1, input)).rejects.toMatchObject({
+            status: 409,
+            message: "Ce créneau vient d'être réservé par quelqu'un d'autre, merci d'en choisir un autre.",
+        });
+        expect(client.query).toHaveBeenCalledWith('ROLLBACK');
+        expect(client.query).not.toHaveBeenCalledWith('COMMIT');
+        expect(interventionRepository.addProduct).not.toHaveBeenCalled();
+        expect(client.release).toHaveBeenCalledTimes(1);
+    });
+
+    it('transforme un créneau supprimé entre-temps (23503) en 409 et annule la transaction', async () => {
+        interventionRepository.create.mockRejectedValue(Object.assign(new Error('foreign key'), { code: '23503' }));
+
+        await expect(interventionService.createIntervention(1, input)).rejects.toMatchObject({
+            status: 409,
+            message: "Ce créneau n'est plus disponible, merci d'en choisir un autre.",
+        });
+        expect(client.query).toHaveBeenCalledWith('ROLLBACK');
+        expect(client.release).toHaveBeenCalledTimes(1);
+    });
+
+    it("annule toute la réservation si l'ajout d'un produit échoue, et relance l'erreur", async () => {
+        interventionRepository.addProduct
+            .mockResolvedValueOnce(undefined)
+            .mockRejectedValueOnce(new Error('connexion perdue'));
+
+        await expect(interventionService.createIntervention(1, input)).rejects.toThrow('connexion perdue');
+        expect(client.query).toHaveBeenCalledWith('ROLLBACK');
+        expect(client.query).not.toHaveBeenCalledWith('COMMIT');
+        expect(client.release).toHaveBeenCalledTimes(1);
+    });
+});
+
+describe('interventionService.reassignIntervention — transaction', () => {
+    let client;
+
+    beforeEach(() => {
+        client = { query: vi.fn().mockResolvedValue({}), release: vi.fn() };
+        db.getClient.mockResolvedValue(client);
+        interventionRepository.findById.mockResolvedValue({ intervention_id: 1, slot_id: 4, zone_id: 26, state: 'prochainement' });
+        slotRepository.findBookableInfo.mockResolvedValue({ slot_id: 5, fee_id: 1, technician_id: 7, bookable: true });
+        slotRepository.findById.mockResolvedValue({ slot_id: 4, fee_id: 1 });
+        zoneRepository.isTechnicianInActiveZone.mockResolvedValue(true);
+        interventionRepository.reassign.mockResolvedValue({ intervention_id: 1, slot_id: 5, technician_id: 7 });
+    });
+
+    it("réassigne l'intervention au nouveau créneau et à son technicien dans une transaction validée", async () => {
+        const result = await interventionService.reassignIntervention(1, { slot_id: 5 });
+
+        expect(client.query).toHaveBeenNthCalledWith(1, 'BEGIN');
+        expect(interventionRepository.reassign).toHaveBeenCalledWith(1, { slotId: 5, technicianId: 7 }, client);
+        expect(client.query).toHaveBeenLastCalledWith('COMMIT');
+        expect(client.release).toHaveBeenCalledTimes(1);
+        expect(result).toEqual({ intervention_id: 1, slot_id: 5, technician_id: 7 });
+    });
+
+    it('transforme un créneau réservé entre-temps (23505) en 409 et annule la transaction', async () => {
+        interventionRepository.reassign.mockRejectedValue(Object.assign(new Error('duplicate key'), { code: '23505' }));
+
+        await expect(interventionService.reassignIntervention(1, { slot_id: 5 })).rejects.toMatchObject({ status: 409 });
+        expect(client.query).toHaveBeenCalledWith('ROLLBACK');
+        expect(client.query).not.toHaveBeenCalledWith('COMMIT');
+        expect(client.release).toHaveBeenCalledTimes(1);
+    });
+
+    it('transforme un créneau supprimé entre-temps (23503) en 409 et annule la transaction', async () => {
+        interventionRepository.reassign.mockRejectedValue(Object.assign(new Error('foreign key'), { code: '23503' }));
+
+        await expect(interventionService.reassignIntervention(1, { slot_id: 5 })).rejects.toMatchObject({
+            status: 409,
+            message: "Ce créneau n'est plus disponible, merci d'en choisir un autre.",
+        });
+        expect(client.query).toHaveBeenCalledWith('ROLLBACK');
+        expect(client.release).toHaveBeenCalledTimes(1);
+    });
+
+    it('relance telle quelle une autre erreur, après avoir annulé la transaction', async () => {
+        interventionRepository.reassign.mockRejectedValue(new Error('connexion perdue'));
+
+        await expect(interventionService.reassignIntervention(1, { slot_id: 5 })).rejects.toThrow('connexion perdue');
+        expect(client.query).toHaveBeenCalledWith('ROLLBACK');
+        expect(client.release).toHaveBeenCalledTimes(1);
     });
 });

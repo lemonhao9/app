@@ -14,6 +14,21 @@ function stateChangedError() {
     return err;
 }
 
+
+function bookingConflictError(err) {
+    if (err.code === '23505') {
+        const conflict = new Error("Ce créneau vient d'être réservé par quelqu'un d'autre, merci d'en choisir un autre.");
+        conflict.status = 409;
+        return conflict;
+    }
+    if (err.code === '23503') {
+        const conflict = new Error("Ce créneau n'est plus disponible, merci d'en choisir un autre.");
+        conflict.status = 409;
+        return conflict;
+    }
+    return err;
+}
+
 export async function createIntervention(clientId, { bike_id, slot_id, address_id, product_ids }) {
     const slot = await slotRepository.findBookableInfo(slot_id);
     if (!slot) {
@@ -88,12 +103,7 @@ export async function createIntervention(clientId, { bike_id, slot_id, address_i
         await client.query('COMMIT');
     } catch (err) {
         await client.query('ROLLBACK');
-        if (err.code === '23505') {
-            const conflict = new Error("Ce créneau vient d'être réservé par quelqu'un d'autre, merci d'en choisir un autre.");
-            conflict.status = 409;
-            throw conflict;
-        }
-        throw err;
+        throw bookingConflictError(err);
     } finally {
         client.release();
     }
@@ -215,12 +225,7 @@ export async function reassignIntervention(interventionId, { slot_id }) {
         await client.query('COMMIT');
     } catch (err) {
         await client.query('ROLLBACK');
-        if (err.code === '23505') {
-            const conflict = new Error("Ce créneau vient d'être réservé par quelqu'un d'autre, merci d'en choisir un autre.");
-            conflict.status = 409;
-            throw conflict;
-        }
-        throw err;
+        throw bookingConflictError(err);
     } finally {
         client.release();
     }
