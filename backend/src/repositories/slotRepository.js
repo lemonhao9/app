@@ -19,6 +19,7 @@ export async function findByZoneFeeDay(zoneId, feeId, day) {
                 ) AS day_load
             FROM slot s
             JOIN "user" t ON t.user_id = s.technician_id AND t.is_active = TRUE
+            JOIN fee f ON f.fee_id = s.fee_id AND f.is_active = TRUE
             WHERE s.fee_id = $2 AND s.day = $3
               AND EXISTS (
                   SELECT 1 FROM positionner p

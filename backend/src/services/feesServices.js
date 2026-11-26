@@ -1,5 +1,6 @@
 import * as feesRepository from '../repositories/feesRepository.js';
-import { getClient} from '../utils/db.js';
+import { getClient } from '../utils/db.js';
+import { syncSlotsInBackground } from './slotGenerationService.js';
 
 export async function getAllActiveFees() {
     return await feesRepository.findAllActive();
@@ -10,7 +11,9 @@ export async function getAllFees() {
 }
 
 export async function createFee(data) {
-    return await feesRepository.create(data);
+    const fee = await feesRepository.create(data);
+    syncSlotsInBackground('création du forfait');
+    return fee;
 }
 
 export async function updateFee(feeId, data) {
@@ -20,6 +23,7 @@ export async function updateFee(feeId, data) {
         err.status = 404;
         throw err;
     }
+    syncSlotsInBackground('modification du forfait');
     return fee;
 }
 
@@ -30,6 +34,7 @@ export async function desactivateFee(feeId) {
         err.status = 404;
         throw err;
     }
+    syncSlotsInBackground('désactivation du forfait');
     return fee;
 }
 
@@ -40,6 +45,7 @@ export async function activateFee(feeId) {
         err.status = 404;
         throw err;
     }
+    syncSlotsInBackground('réactivation du forfait');
     return fee;
 }
 
@@ -73,4 +79,5 @@ export async function deleteFee(feeId) {
     } finally {
         client.release();
     }
+    syncSlotsInBackground('suppression du forfait');
 }
