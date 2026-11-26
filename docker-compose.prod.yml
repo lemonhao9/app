@@ -1,12 +1,15 @@
 services:
   api:
+    build:
+      target: prod
     restart: always
+    init: true
     logging:
       driver: json-file
       options:
         max-size: "10m"
         max-file: "5"
-    command: sh -c "npm run migrate && npm start"
+    command: sh -c "npm run migrate && exec node src/index.js"
     environment:
       NODE_ENV: production
       FRONTEND_URL: ${FRONTEND_URL}

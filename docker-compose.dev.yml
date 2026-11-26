@@ -1,5 +1,7 @@
 services:
   api:
+    build:
+      target: dev
     ports:
       - "${API_PORT:-3000}:3000"
     volumes:

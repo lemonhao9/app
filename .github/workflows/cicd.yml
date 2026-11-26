@@ -93,6 +93,7 @@ jobs:
           compose() { docker compose -f docker-compose.yml -f docker-compose.prod.yml --profile production "$@"; }
           compose pull --ignore-buildable
           compose build --pull
+          compose run --rm --no-deps --user root api find /app/uploads ! -user node -exec chown node:node {} +
           compose up -d
           docker image prune -f
           EOF
