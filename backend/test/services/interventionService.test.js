@@ -6,12 +6,16 @@ import * as slotRepository from '../../src/repositories/slotRepository.js';
 import * as addressRepository from '../../src/repositories/addressRepository.js';
 import * as bikeRepository from '../../src/repositories/bikeRepository.js';
 import * as zoneRepository from '../../src/repositories/zoneRepository.js';
+import * as feesRepository from '../../src/repositories/feesRepository.js';
+import * as productsRepository from '../../src/repositories/productsRepository.js';
 
 vi.mock('../../src/repositories/interventionRepository.js');
 vi.mock('../../src/repositories/slotRepository.js');
 vi.mock('../../src/repositories/addressRepository.js');
 vi.mock('../../src/repositories/bikeRepository.js');
 vi.mock('../../src/repositories/zoneRepository.js');
+vi.mock('../../src/repositories/feesRepository.js');
+vi.mock('../../src/repositories/productsRepository.js');
 vi.mock('../../src/utils/socket.js');
 
 beforeEach(() => {
@@ -178,6 +182,55 @@ describe('interventionService.createIntervention (contrôles de zone, ADR-17)', 
         bikeRepository.findById.mockResolvedValue({ bike_id: 3, user_id: 1 });
     });
 
+    it('lève une 404 si le créneau est introuvable', async () => {
+        slotRepository.findBookableInfo.mockResolvedValue(null);
+
+        await expect(interventionService.createIntervention(1, input)).rejects.toMatchObject({ status: 404 });
+        expect(bikeRepository.findById).not.toHaveBeenCalled();
+    });
+
+    it("lève une 409 si le créneau n'est plus réservable", async () => {
+        slotRepository.findBookableInfo.mockResolvedValue({ slot_id: 5, fee_id: 1, technician_id: 7, bookable: false });
+
+        await expect(interventionService.createIntervention(1, input)).rejects.toMatchObject({ status: 409 });
+        expect(bikeRepository.findById).not.toHaveBeenCalled();
+    });
+
+    it("lève une 404 si le vélo n'appartient pas au client", async () => {
+        bikeRepository.findById.mockResolvedValue({ bike_id: 3, user_id: 2 });
+
+        await expect(interventionService.createIntervention(1, input)).rejects.toMatchObject({ status: 404 });
+        expect(addressRepository.findById).not.toHaveBeenCalled();
+    });
+
+    it("lève une 404 si l'adresse n'appartient pas au client", async () => {
+        addressRepository.findById.mockResolvedValue({ address_id: 9, user_id: 2, zone_id: 26 });
+
+        await expect(interventionService.createIntervention(1, input)).rejects.toMatchObject({ status: 404 });
+        expect(zoneRepository.isTechnicianInActiveZone).not.toHaveBeenCalled();
+    });
+
+    it('refuse (409 FEE_INACTIVE) un créneau dont le forfait a été désactivé', async () => {
+        addressRepository.findById.mockResolvedValue({ address_id: 9, user_id: 1, zone_id: 26 });
+        zoneRepository.isTechnicianInActiveZone.mockResolvedValue(true);
+        feesRepository.findById.mockResolvedValue({ fee_id: 1, price_fee: '30.00', is_active: false });
+
+        await expect(interventionService.createIntervention(1, input)).rejects.toMatchObject({ status: 409, appCode: 'FEE_INACTIVE' });
+        expect(productsRepository.findByIds).not.toHaveBeenCalled();
+        expect(interventionRepository.create).not.toHaveBeenCalled();
+    });
+
+    it('lève une 400 si un produit demandé est introuvable ou indisponible', async () => {
+        addressRepository.findById.mockResolvedValue({ address_id: 9, user_id: 1, zone_id: 26 });
+        zoneRepository.isTechnicianInActiveZone.mockResolvedValue(true);
+        feesRepository.findById.mockResolvedValue({ fee_id: 1, price_fee: '30.00', is_active: true });
+        productsRepository.findByIds.mockResolvedValue([{ product_id: 4, price: '9.90' }]);
+
+        await expect(interventionService.createIntervention(1, { ...input, product_ids: [4, 8] })).rejects.toMatchObject({ status: 400 });
+        expect(productsRepository.findByIds).toHaveBeenCalledWith([4, 8]);
+        expect(interventionRepository.create).not.toHaveBeenCalled();
+    });
+    
     it("lève une 409 si l'adresse n'est dans aucune zone desservie", async () => {
         addressRepository.findById.mockResolvedValue({ address_id: 9, user_id: 1, zone_id: null });
 

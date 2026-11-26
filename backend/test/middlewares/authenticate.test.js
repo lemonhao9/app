@@ -90,4 +90,71 @@ describe('authenticate', () => {
 
         expect(next).toHaveBeenCalledWith();
     });
+    
+    it('refuse (401) une requête sans en-tête Authorization', async () => {
+        const res = makeRes();
+        const next = vi.fn();
+
+        await authenticate({ headers: {} }, res, next);
+
+        expect(res.status).toHaveBeenCalledWith(401);
+        expect(jwt.verify).not.toHaveBeenCalled();
+        expect(next).not.toHaveBeenCalled();
+    });
+
+    it("refuse (401) un en-tête qui n'est pas de type Bearer", async () => {
+        const res = makeRes();
+        const next = vi.fn();
+
+        await authenticate({ headers: { authorization: 'Basic abc' } }, res, next);
+
+        expect(res.status).toHaveBeenCalledWith(401);
+        expect(next).not.toHaveBeenCalled();
+    });
+
+    it('refuse (401) un jeton invalide ou expiré', async () => {
+        jwt.verify.mockImplementation(() => { throw new Error('jwt expired'); });
+        const res = makeRes();
+        const next = vi.fn();
+
+        await authenticate(makeReq(), res, next);
+
+        expect(res.status).toHaveBeenCalledWith(401);
+        expect(userRepository.findById).not.toHaveBeenCalled();
+        expect(next).not.toHaveBeenCalled();
+    });
+
+    it('refuse (401) un compte désactivé', async () => {
+        userRepository.findById.mockResolvedValue({ ...activeUser, is_active: false });
+        const res = makeRes();
+        const next = vi.fn();
+
+        await authenticate(makeReq(), res, next);
+
+        expect(res.status).toHaveBeenCalledWith(401);
+        expect(next).not.toHaveBeenCalled();
+    });
+
+    it('refuse (401) un compte introuvable', async () => {
+        userRepository.findById.mockResolvedValue(null);
+        const res = makeRes();
+        const next = vi.fn();
+
+        await authenticate(makeReq(), res, next);
+
+        expect(res.status).toHaveBeenCalledWith(401);
+        expect(next).not.toHaveBeenCalled();
+    });
+
+    it("transmet l'erreur au gestionnaire d'erreurs si la base ne répond pas", async () => {
+        const dbError = new Error('ECONNREFUSED');
+        userRepository.findById.mockRejectedValue(dbError);
+        const res = makeRes();
+        const next = vi.fn();
+
+        await authenticate(makeReq(), res, next);
+
+        expect(next).toHaveBeenCalledWith(dbError);
+        expect(res.status).not.toHaveBeenCalled();
+    });
 });
