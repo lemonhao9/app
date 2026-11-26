@@ -57,7 +57,8 @@ export function AdminZones() {
     }
 
     async function handleDeactivate(id: number) {
-        if (!window.confirm('Désactiver cette zone ? Ses créneaux ne seront plus proposés à la réservation, les interventions déjà prévues sont maintenues. Elle pourra être réactivée plus tard.')) return; setActionError(null);
+        if (!window.confirm('Désactiver cette zone ? Ses créneaux ne seront plus proposés à la réservation, les interventions déjà prévues sont maintenues. Elle pourra être réactivée plus tard.')) return;
+        setActionError(null);
         try {
             await deactivateZone(id);
             if (editingZoneId === id) setEditingZoneId(null);

@@ -345,7 +345,6 @@ describe('userService.deactivateUser / activateUser', () => {
         await expect(userService.activateUser(1)).rejects.toMatchObject({ status: 409 });
         expect(userRepository.setActive).not.toHaveBeenCalled();
     });
-});
 
     it('relance la génération des créneaux quand un technicien est réactivé', async () => {
         userRepository.findById.mockResolvedValue({ ...currentUser, is_active: false });
@@ -366,3 +365,4 @@ describe('userService.deactivateUser / activateUser', () => {
 
         expect(slotGenerationService.syncSlotsInBackground).not.toHaveBeenCalled();
     });
+});
