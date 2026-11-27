@@ -32,6 +32,9 @@ export function AdminInterventions() {
     const [startAt, setStartAt] = useState('');
     const [zoneId, setZoneId] = useState('');
     const [clientId, setClientId] = useState('');
+    const [clientSearch, setClientSearch] = useState('');
+    const [clientHasMore, setClientHasMore] = useState(false);
+    const [selectedClient, setSelectedClient] = useState<ClientOption | null>(null);
     const [bikeId, setBikeId] = useState('');
     const [feeId, setFeeId] = useState('');
     const [sort, setSort] = useState<'asc' | 'desc'>('desc');
@@ -41,14 +44,32 @@ export function AdminInterventions() {
     const [error, setError] = useState<string | null>(null);
 
     useEffect(() => {
-        Promise.all([getZones(), getClients(), getAllFees()])
-            .then(([zonesData, clientsData, feesData]) => {
+        Promise.all([getZones(), getAllFees()])
+            .then(([zonesData, feesData]) => {
                 setZoneOptions(zonesData.zones);
-                setClientOptions(clientsData.users);
                 setFeeOptions(feesData.fees);
             })
             .catch(() => { });
     }, []);
+
+    useEffect(() => {
+        const timer = setTimeout(() => {
+            getClients(clientSearch)
+                .then(data => {
+                    setClientOptions(data.users);
+                    setClientHasMore(data.hasMore);
+                })
+                .catch(() => setClientOptions([]));
+        }, 300);
+        return () => clearTimeout(timer);
+    }, [clientSearch]);
+
+    function handleClientChange(value: string) {
+        setClientId(value);
+        setSelectedClient(clientOptions.find(c => String(c.user_id) === value) ?? null);
+        setBikeId('');
+        setBikeOptions([]);
+    }
 
     useEffect(() => {
         if (!clientId) return;
@@ -97,9 +118,21 @@ export function AdminInterventions() {
                     <option value="">Toutes les zones</option>
                     {zoneOptions.map(z => <option key={z.zone_id} value={z.zone_id}>{z.name}</option>)}
                 </select>
-                <select value={clientId} onChange={e => { setClientId(e.target.value); setBikeId(''); setBikeOptions([]); }} className="border border-gray-300 rounded-md px-3 py-2 text-sm">
+                <input
+                    type="search"
+                    value={clientSearch}
+                    onChange={e => setClientSearch(e.target.value)}
+                    placeholder="Rechercher un client (nom, e-mail)"
+                    maxLength={100}
+                    className="border border-gray-300 rounded-md px-3 py-2 text-sm"
+                />
+                <select value={clientId} onChange={e => handleClientChange(e.target.value)} className="border border-gray-300 rounded-md px-3 py-2 text-sm">
                     <option value="">Tous les clients</option>
-                    {clientOptions.map(c => <option key={c.user_id} value={c.user_id}>{c.name}</option>)}
+                    {selectedClient && !clientOptions.some(c => c.user_id === selectedClient.user_id) && (
+                        <option value={selectedClient.user_id}>{selectedClient.name} ({selectedClient.email})</option>
+                    )}
+                    {clientOptions.map(c => <option key={c.user_id} value={c.user_id}>{c.name} ({c.email})</option>)}
+                    {clientHasMore && <option disabled>Plus de 10 résultats : affinez la recherche</option>}
                 </select>
                 <select value={bikeId} onChange={e => setBikeId(e.target.value)} disabled={!clientId} className="border border-gray-300 rounded-md px-3 py-2 text-sm disabled:opacity-50">
                     <option value="">{clientId ? 'Tous les vélos' : "Choisir d'abord un client"}</option>

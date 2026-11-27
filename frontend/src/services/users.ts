@@ -14,8 +14,10 @@ export interface BikeOption {
     model: string | null;
 }
 
-export async function getClients(): Promise<{ users: ClientOption[] }> {
-    return handle(await fetch(`${BASE}/users?role=client`, { headers: authHeaders() }));
+export async function getClients(q = ''): Promise<{ users: ClientOption[]; hasMore: boolean }> {
+    const params = new URLSearchParams({ role: 'client', limit: '10' });
+    if (q.trim()) params.set('q', q.trim());
+    return handle(await fetch(`${BASE}/users?${params}`, { headers: authHeaders() }));
 }
 
 export async function getUserBikes(userId: number): Promise<{ bikes: BikeOption[] }> {
