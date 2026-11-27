@@ -32,10 +32,9 @@ export function TechnicianProfil() {
         }
 
         try {
-            const token = localStorage.getItem('hch_token');
             const res = await apiFetch('/api/v1/users/me', {
                 method: 'PUT',
-                headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
+                headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify(body),
             });
             const data = await res.json();

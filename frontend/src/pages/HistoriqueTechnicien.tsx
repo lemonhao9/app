@@ -54,10 +54,7 @@ export function HistoriqueTechnicien() {
     const [error, setError] = useState<string | null>(null);
 
     useEffect(() => {
-        const token = localStorage.getItem('hch_token');
-        apiFetch('/api/v1/interventions/history?limit=50', {
-            headers: { Authorization: `Bearer ${token}` },
-        })
+        apiFetch('/api/v1/interventions/history?limit=50')
             .then(res => { if (!res.ok) throw new Error(); return res.json(); })
             .then(data => {
                 const zones = new Map<number, string>();
@@ -81,13 +78,10 @@ export function HistoriqueTechnicien() {
     }
 
     function load(reset: boolean) {
-        const token = localStorage.getItem('hch_token');
         const currentOffset = reset ? 0 : offset;
         setLoading(true);
         setError(null);
-        apiFetch(`/api/v1/interventions/history?${buildQuery(currentOffset)}`, {
-            headers: { Authorization: `Bearer ${token}` },
-        })
+        apiFetch(`/api/v1/interventions/history?${buildQuery(currentOffset)}`)
             .then(res => { if (!res.ok) throw new Error(); return res.json(); })
             .then(data => {
                 setInterventions(prev => reset ? data.interventions : [...prev, ...data.interventions]);

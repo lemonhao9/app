@@ -37,12 +37,10 @@ function BikeForm({ bike, onSaved, onCancel }: { bike?: Bike; onSaved: (bike: Bi
         if (photo) formData.append('photo', photo);
 
         try {
-            const token = localStorage.getItem('hch_token');
             const url = bike ? `/api/v1/bikes/${bike.bike_id}` : '/api/v1/bikes';
             const method = bike ? 'PUT' : 'POST';
             const res = await apiFetch(url, {
                 method,
-                headers: { Authorization: `Bearer ${token}` },
                 body: formData,
             });
             const data = await res.json();
@@ -91,11 +89,9 @@ export function MyGarage() {
     const [editingBikeId, setEditingBikeId] = useState<number | null>(null);
 
     useEffect(() => {
-        const token = localStorage.getItem('hch_token');
-        if (!token) return;
         setLoading(true);
         setError(null);
-        apiFetch('/api/v1/bikes/me', { headers: { Authorization: `Bearer ${token}` } })
+        apiFetch('/api/v1/bikes/me')
             .then(res => { if (!res.ok) throw new Error(); return res.json(); })
             .then(data => setBikes(data.bikes))
             .catch(() => setError('Impossible de charger vos vélos.'))
@@ -108,17 +104,16 @@ export function MyGarage() {
     }
 
     async function handleDelete(bikeId: number) {
-    if (!window.confirm('Êtes-vous sûr de vouloir supprimer ce vélo ?')) return;
-    const token = localStorage.getItem('hch_token');
-    const res = await apiFetch(`/api/v1/bikes/${bikeId}`,
-        { method: 'DELETE', headers: { Authorization: `Bearer ${token}` } });
-    if (!res.ok) {
-        const data = await res.json().catch(() => ({}));
-        setError(typeof data.error === 'string' ? data.error : 'Impossible de supprimer ce vélo.');
-        return;
+        if (!window.confirm('Êtes-vous sûr de vouloir supprimer ce vélo ?')) return;
+        const res = await apiFetch(`/api/v1/bikes/${bikeId}`,
+            { method: 'DELETE' });
+        if (!res.ok) {
+            const data = await res.json().catch(() => ({}));
+            setError(typeof data.error === 'string' ? data.error : 'Impossible de supprimer ce vélo.');
+            return;
+        }
+        setBikes(prev => prev.filter(b => b.bike_id !== bikeId));
     }
-    setBikes(prev => prev.filter(b => b.bike_id !== bikeId));
-}
     return (
         <main className="px-8 pt-24 pb-10 max-w-[1400px] mx-auto">
             <h1 className="text-2xl font-black uppercase tracking-wide mb-6">Mon garage</h1>

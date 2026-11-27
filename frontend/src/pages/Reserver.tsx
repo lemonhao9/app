@@ -4,7 +4,7 @@ import { MapContainer, TileLayer, GeoJSON as GeoJsonLayer } from "react-leaflet"
 import { Button } from "@/components/ui/button";
 import { useAuth } from '@/context/useAuth';
 import { apiFetch } from "@/services/http";
-
+import { formatDuration } from "@/lib/format";
 interface Bike {
     bike_id: number;
     brand: string | null;
@@ -62,12 +62,6 @@ interface Intervention {
 
 const MAX_STEP = 5;
 
-function formatDuration(minutes: number): string {
-    if (minutes === 45) return "30-45 minutes";
-    if (minutes >= 60) return minutes % 60 === 0 ? `${minutes / 60}h` : `${Math.floor(minutes / 60)}h${String(minutes % 60).padStart(2, '0')}`;
-    return `${minutes} minutes`;
-}
-
 function formatTime(time: string): string {
     return time.slice(0, 5);
 }
@@ -94,10 +88,8 @@ function BikeStep({ selectedBikeId, onSelect }: { selectedBikeId: number | null;
     const [error, setError] = useState<string | null>(null);
 
     useEffect(() => {
-        const token = localStorage.getItem('hch_token');
-        if (!token) return;
         setLoading(true);
-        apiFetch('/api/v1/bikes/me', { headers: { Authorization: `Bearer ${token}` } })
+        apiFetch('/api/v1/bikes/me')
             .then(res => { if (!res.ok) throw new Error(); return res.json(); })
             .then(data => setBikes(data.bikes))
             .catch(() => setError('Impossible de charger vos vélos.'))
@@ -197,9 +189,7 @@ function SlotStep({
     }, []);
 
     useEffect(() => {
-        const token = localStorage.getItem('hch_token');
-        if (!token) return;
-        apiFetch('/api/v1/addresses/me', { headers: { Authorization: `Bearer ${token}` } })
+        apiFetch('/api/v1/addresses/me')
             .then(res => { if (!res.ok) throw new Error(); return res.json(); })
             .then(data => {
                 setAddresses(data.addresses);
@@ -217,8 +207,7 @@ function SlotStep({
 
     useEffect(() => {
         if (!zoneId) { setZone(null); return; }
-        const token = localStorage.getItem('hch_token');
-        apiFetch(`/api/v1/zones/${zoneId}`, { headers: { Authorization: `Bearer ${token}` } })
+        apiFetch(`/api/v1/zones/${zoneId}`)
             .then(res => { if (!res.ok) throw new Error(); return res.json(); })
             .then(data => setZone(data.zone))
             .catch(() => setZone(null));
@@ -226,10 +215,9 @@ function SlotStep({
 
     useEffect(() => {
         if (!zoneId || !feeId) { setSlots([]); return; }
-        const token = localStorage.getItem('hch_token');
         setLoading(true);
         setError(null);
-        apiFetch(`/api/v1/slots?zone_id=${zoneId}&fee_id=${feeId}&day=${day}`, { headers: { Authorization: `Bearer ${token}` } })
+        apiFetch(`/api/v1/slots?zone_id=${zoneId}&fee_id=${feeId}&day=${day}`)
             .then(res => { if (!res.ok) throw new Error(); return res.json(); })
             .then(data => setSlots(data.slots))
             .catch(() => setError('Impossible de charger les créneaux.'))
@@ -407,13 +395,11 @@ function RecapStep({
     const [error, setError] = useState<string | null>(null);
 
     useEffect(() => {
-        const token = localStorage.getItem('hch_token');
         setLoading(true);
         Promise.all([
-            apiFetch('/api/v1/bikes/me', { headers: { Authorization: `Bearer ${token}` } }).then(r => { if (!r.ok) throw new Error(); return r.json(); }),
+            apiFetch('/api/v1/bikes/me').then(r => { if (!r.ok) throw new Error(); return r.json(); }),
             apiFetch('/api/v1/fees').then(r => { if (!r.ok) throw new Error(); return r.json(); }),
-            apiFetch('/api/v1/addresses/me', { headers: { Authorization: `Bearer ${token}` } }).then(r => { if (!r.ok) throw new Error(); return r.json(); }),
-            apiFetch('/api/v1/products').then(r => { if (!r.ok) throw new Error(); return r.json(); }),
+            apiFetch('/api/v1/addresses/me').then(r => { if (!r.ok) throw new Error(); return r.json(); }), apiFetch('/api/v1/products').then(r => { if (!r.ok) throw new Error(); return r.json(); }),
         ])
             .then(([bikesData, feesData, addressesData, productsData]) => {
                 setBikes(bikesData.bikes);
@@ -524,11 +510,10 @@ export function Reserver() {
         setSubmitting(true);
         setSubmitError(null);
         setPhotoWarning(null);
-        const token = localStorage.getItem('hch_token');
         try {
             const res = await apiFetch('/api/v1/interventions', {
                 method: 'POST',
-                headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
+                headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({
                     bike_id: selectedBikeId,
                     slot_id: selectedSlotId,
@@ -564,7 +549,6 @@ export function Reserver() {
                 photos.forEach(file => formData.append('photos', file));
                 const photoRes = await apiFetch(`/api/v1/interventions/${intervention.intervention_id}/photos`, {
                     method: 'POST',
-                    headers: { Authorization: `Bearer ${token}` },
                     body: formData,
                 }).catch(() => null);
                 if (!photoRes || !photoRes.ok) {

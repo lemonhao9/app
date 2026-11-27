@@ -1,6 +1,8 @@
 import { useEffect, useState } from "react";
 import { MapContainer, TileLayer, GeoJSON as GeoJsonLayer } from "react-leaflet";
 import { apiFetch } from "@/services/http";
+import { formatDuration } from "@/lib/format";
+
 interface InterventionSummary {
     intervention_id: number;
     state: string;
@@ -30,12 +32,6 @@ const STATE_LABELS: Record<string, string> = {
     'annulée': 'Annulée',
 };
 
-function formatDuration(minutes: number): string {
-    if (minutes === 45) return "30-45 minutes";
-    if (minutes >= 60) return `${Math.floor(minutes / 60)}h`;
-    return `${minutes} minutes`;
-}
-
 function formatTime(time: string): string {
     return time.slice(0, 5);
 }
@@ -55,12 +51,9 @@ export function Historique() {
     const [error, setError] = useState<string | null>(null);
 
     useEffect(() => {
-        const token = localStorage.getItem('hch_token');
         setLoading(true);
         setError(null);
-        apiFetch(`/api/v1/interventions/me?sort=${sort}&limit=${PAGE_SIZE}&offset=0`, {
-            headers: { Authorization: `Bearer ${token}` },
-        })
+                apiFetch(`/api/v1/interventions/me?sort=${sort}&limit=${PAGE_SIZE}&offset=0`)
             .then(res => { if (!res.ok) throw new Error(); return res.json(); })
             .then(data => {
                 setInterventions(data.interventions);
@@ -72,10 +65,7 @@ export function Historique() {
     }, [sort]);
 
     function loadMore() {
-        const token = localStorage.getItem('hch_token');
-        apiFetch(`/api/v1/interventions/me?sort=${sort}&limit=${PAGE_SIZE}&offset=${offset}`, {
-            headers: { Authorization: `Bearer ${token}` },
-        })
+        apiFetch(`/api/v1/interventions/me?sort=${sort}&limit=${PAGE_SIZE}&offset=${offset}`)
             .then(res => { if (!res.ok) throw new Error(); return res.json(); })
             .then(data => {
                 setInterventions(prev => [...prev, ...data.interventions]);

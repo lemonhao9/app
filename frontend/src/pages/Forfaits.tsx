@@ -1,4 +1,6 @@
 import { useEffect, useState } from 'react';
+import { formatDuration } from '@/lib/format';
+
 interface Fee {
     fee_id: number;
     name_fee: string;
@@ -15,12 +17,6 @@ interface Product {
     name: string;
     category: string;
     price: string;
-}
-
-function formatDuration(minutes: number): string {
-    if (minutes === 45) return "30-45 minutes";
-    if (minutes >= 60) return minutes % 60 === 0 ? `${minutes / 60}h` : `${Math.floor(minutes / 60)}h${String(minutes % 60).padStart(2, '0')}`;
-    return `${minutes} minutes`;
 }
 
 function FeeCard({ fee }: { fee: Fee }) {

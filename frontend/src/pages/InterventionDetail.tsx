@@ -68,11 +68,8 @@ export function InterventionDetail() {
     const [actionError, setActionError] = useState<string | null>(null);
     const [photoFiles, setPhotoFiles] = useState<File[]>([]);
 
-        const loadIntervention = useCallback(() => {
-        const token = localStorage.getItem('hch_token');
-        return apiFetch(`/api/v1/interventions/${id}`, {
-            headers: { Authorization: `Bearer ${token}` },
-        })
+    const loadIntervention = useCallback(() => {
+        return apiFetch(`/api/v1/interventions/${id}`)
             .then(res => { if (!res.ok) throw new Error(); return res.json(); })
             .then(data => {
                 setIntervention(data.intervention);
@@ -90,12 +87,10 @@ export function InterventionDetail() {
 
 
     function handleStart() {
-        const token = localStorage.getItem('hch_token');
         setActionLoading(true);
         setActionError(null);
         apiFetch(`/api/v1/interventions/${id}/start`, {
             method: 'PATCH',
-            headers: { Authorization: `Bearer ${token}` },
         })
             .then(res => { if (!res.ok) throw new Error(); return res.json(); })
             .then(data => setIntervention(data.intervention))
@@ -105,12 +100,11 @@ export function InterventionDetail() {
 
     function handleComplete(e: React.FormEvent) {
         e.preventDefault();
-        const token = localStorage.getItem('hch_token');
         setActionLoading(true);
         setActionError(null);
         apiFetch(`/api/v1/interventions/${id}/complete`, {
             method: 'PATCH',
-            headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
+            headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({ total_price: Number(price), is_paid: isPaid }),
         })
             .then(res => { if (!res.ok) throw new Error(); return res.json(); })
@@ -122,14 +116,12 @@ export function InterventionDetail() {
     function handleUploadPhotos(e: React.FormEvent) {
         e.preventDefault();
         if (photoFiles.length === 0) return;
-        const token = localStorage.getItem('hch_token');
         setActionLoading(true);
         setActionError(null);
         const formData = new FormData();
         photoFiles.forEach(file => formData.append('photos', file));
         apiFetch(`/api/v1/interventions/${id}/photos`, {
             method: 'POST',
-            headers: { Authorization: `Bearer ${token}` },
             body: formData,
         })
             .then(res => { if (!res.ok) throw new Error(); })
@@ -140,12 +132,10 @@ export function InterventionDetail() {
 
     function handleCancel() {
         if (!window.confirm("Confirmer l'annulation de cette intervention ?")) return;
-        const token = localStorage.getItem('hch_token');
         setActionLoading(true);
         setActionError(null);
         apiFetch(`/api/v1/interventions/${id}/cancel`, {
             method: 'PATCH',
-            headers: { Authorization: `Bearer ${token}` },
         })
             .then(res => { if (!res.ok) throw new Error(); return res.json(); })
             .then(data => setIntervention(data.intervention))
