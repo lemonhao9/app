@@ -1,6 +1,7 @@
 import * as addressService from '../services/addressService.js';
 import * as zoneService from '../services/zoneService.js';
 import { addressCreateSchema } from '../utils/schemas.js';
+import { sendValidationError } from '../utils/validation.js';
 
 export async function geocode(req, res, next) {
     const { q } = req.query;
@@ -43,7 +44,7 @@ export async function getMyAddresses(req, res, next) {
 export async function createAddress(req, res, next) {
     const parsed = addressCreateSchema.safeParse(req.body);
     if (!parsed.success) {
-        return res.status(400).json({ error: parsed.error.flatten() });
+        return sendValidationError(res, parsed.error);
     }
     try {
         const address = await addressService.createAddress(req.user.userId, parsed.data.label);
@@ -56,7 +57,7 @@ export async function createAddress(req, res, next) {
 export async function updateAddress(req, res, next) {
     const parsed = addressCreateSchema.safeParse(req.body);
     if (!parsed.success) {
-        return res.status(400).json({ error: parsed.error.flatten() });
+        return sendValidationError(res, parsed.error);
     }
     try {
         const address = await addressService.updateAddress(req.user.userId, Number(req.params.id), parsed.data.label);

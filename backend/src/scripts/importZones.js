@@ -2,6 +2,7 @@ import 'dotenv/config';
 import fs from 'fs/promises';
 import path from 'path';
 import * as zoneRepository from '../repositories/zoneRepository.js';
+import { z } from 'zod';
 import { zoneSchema } from '../utils/schemas.js';
 
 function computeCentroid(ring) {
@@ -46,7 +47,7 @@ async function importZones() {
 
             const parsed = zoneSchema.safeParse(candidate);
             if (!parsed.success) {
-                throw new Error(JSON.stringify(parsed.error.flatten()));
+                throw new Error(JSON.stringify(z.flattenError(parsed.error)));
             }
 
             const zone = await zoneRepository.create(parsed.data);

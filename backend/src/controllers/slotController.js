@@ -1,6 +1,7 @@
 import { z } from 'zod';
 import * as slotService from '../services/slotService.js';
 import { BOOKING_HORIZON_DAYS } from '../utils/booking.js';
+import { sendValidationError } from '../utils/validation.js';
 
 const slotQuerySchema = z.object({
     zone_id: z.coerce.number().int().positive(),
@@ -11,7 +12,7 @@ const slotQuerySchema = z.object({
 export async function getSlots(req, res, next) {
     const parsed = slotQuerySchema.safeParse(req.query);
     if (!parsed.success) {
-        return res.status(400).json({ error: parsed.error.flatten() });
+        return sendValidationError(res, parsed.error);
     }
     try {
         const slots = await slotService.getAvailableSlots(parsed.data);
@@ -32,7 +33,7 @@ const createSlotSchema = z.object({
 export async function createSlot(req, res, next) {
     const parsed = createSlotSchema.safeParse(req.body);
     if (!parsed.success) {
-        return res.status(400).json({ error: parsed.error.flatten() });
+        return sendValidationError(res, parsed.error);
     }
     try {
         const slot = await slotService.createSlot(parsed.data);

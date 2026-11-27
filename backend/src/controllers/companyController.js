@@ -1,5 +1,6 @@
 import * as companyService from '../services/companyService.js';
 import { companyUpdateSchema } from '../utils/schemas.js';
+import { sendValidationError } from '../utils/validation.js';
 
 export async function getCompany(req, res, next) {
     try {
@@ -14,7 +15,7 @@ export async function getCompany(req, res, next) {
 export async function updateCompany(req, res, next) {
     const parsed = companyUpdateSchema.safeParse(req.body);
     if (!parsed.success) {
-        return res.status(400).json({ error: parsed.error.flatten() });
+        return sendValidationError(res, parsed.error);
     }
     try {
         const company = await companyService.updateCompany(parsed.data);

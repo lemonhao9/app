@@ -1,5 +1,6 @@
 import * as zoneService from '../services/zoneService.js';
 import { zoneSchema, assignTechnicianSchema } from '../utils/schemas.js';
+import { sendValidationError } from '../utils/validation.js';
 
 export async function getAllZones(req, res, next) {
     try {
@@ -13,7 +14,7 @@ export async function getAllZones(req, res, next) {
 export async function createZone(req, res, next) {
     const parsed = zoneSchema.safeParse(req.body);
     if (!parsed.success) {
-        return res.status(400).json({ error: parsed.error.flatten() });
+        return sendValidationError(res, parsed.error);
     }
     try {
         const zone = await zoneService.createZone(parsed.data);
@@ -26,7 +27,7 @@ export async function createZone(req, res, next) {
 export async function updateZone(req, res, next) {
     const parsed = zoneSchema.safeParse(req.body);
     if (!parsed.success) {
-        return res.status(400).json({ error: parsed.error.flatten() });
+        return sendValidationError(res, parsed.error);
     }
     try {
         const zone = await zoneService.updateZone(Number(req.params.id), parsed.data);
@@ -75,7 +76,7 @@ export async function getZoneTechnicians(req, res, next) {
 export async function assignTechnician(req, res, next) {
     const parsed = assignTechnicianSchema.safeParse(req.body);
     if (!parsed.success) {
-        return res.status(400).json({ error: parsed.error.flatten() });
+        return sendValidationError(res, parsed.error);
     }
     try {
         await zoneService.assignTechnician(Number(req.params.id), parsed.data.userId);

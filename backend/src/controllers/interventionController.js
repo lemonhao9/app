@@ -1,11 +1,12 @@
 import * as interventionService from '../services/interventionService.js';
 import { z } from 'zod';
 import { createInterventionSchema, completeInterventionSchema, technicianHistoryQuerySchema, adminInterventionsQuerySchema, reassignInterventionSchema, planningQuerySchema } from '../utils/schemas.js';
+import { sendValidationError } from '../utils/validation.js';
 
 export async function createIntervention(req, res, next) {
     const parsed = createInterventionSchema.safeParse(req.body);
     if (!parsed.success) {
-        return res.status(400).json({ error: parsed.error.flatten() });
+        return sendValidationError(res, parsed.error);
     }
     try {
         const intervention = await interventionService.createIntervention(req.user.userId, parsed.data);
@@ -42,7 +43,7 @@ const myInterventionsQuerySchema = z.object({
 export async function getMyInterventions(req, res, next) {
     const parsed = myInterventionsQuerySchema.safeParse(req.query);
     if (!parsed.success) {
-        return res.status(400).json({ error: parsed.error.flatten() });
+        return sendValidationError(res, parsed.error);
     }
     try {
         const result = await interventionService.getMyInterventions(req.user.userId, parsed.data);
@@ -82,7 +83,7 @@ export async function startIntervention(req, res, next) {
 export async function completeIntervention(req, res, next) {
     const parsed = completeInterventionSchema.safeParse(req.body);
     if (!parsed.success) {
-        return res.status(400).json({ error: parsed.error.flatten() });
+        return sendValidationError(res, parsed.error);
     }
     try {
         const intervention = await interventionService.completeIntervention(req.user.userId, Number(req.params.id), parsed.data);
@@ -95,7 +96,7 @@ export async function completeIntervention(req, res, next) {
 export async function getHistoryForTechnician(req, res, next) {
     const parsed = technicianHistoryQuerySchema.safeParse(req.query);
     if (!parsed.success) {
-        return res.status(400).json({ error: parsed.error.flatten() });
+        return sendValidationError(res, parsed.error);
     }
     try {
         const result = await interventionService.getHistoryForTechnician(req.user.userId, parsed.data);
@@ -108,7 +109,7 @@ export async function getHistoryForTechnician(req, res, next) {
 export async function getAllInterventions(req, res, next) {
     const parsed = adminInterventionsQuerySchema.safeParse(req.query);
     if (!parsed.success) {
-        return res.status(400).json({ error: parsed.error.flatten() });
+        return sendValidationError(res, parsed.error);
     }
     try {
         const result = await interventionService.getAllInterventions(parsed.data);
@@ -121,7 +122,7 @@ export async function getAllInterventions(req, res, next) {
 export async function reassignIntervention(req, res, next) {
     const parsed = reassignInterventionSchema.safeParse(req.body);
     if (!parsed.success) {
-        return res.status(400).json({ error: parsed.error.flatten() });
+        return sendValidationError(res, parsed.error);
     }
     try {
         const intervention = await interventionService.reassignIntervention(Number(req.params.id), parsed.data);
@@ -134,7 +135,7 @@ export async function reassignIntervention(req, res, next) {
 export async function getPlanning(req, res, next) {
     const parsed = planningQuerySchema.safeParse(req.query);
     if (!parsed.success) {
-        return res.status(400).json({ error: parsed.error.flatten() });
+        return sendValidationError(res, parsed.error);
     }
     try {
         const result = await interventionService.getPlanning(parsed.data);

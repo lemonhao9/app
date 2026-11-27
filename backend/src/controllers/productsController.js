@@ -1,5 +1,6 @@
 import * as productsServices from '../services/productsServices.js';
 import { productSchema } from '../utils/schemas.js';
+import { sendValidationError } from '../utils/validation.js';
 
 export async function getAllActiveProducts(req, res, next) {
     try{
@@ -22,7 +23,7 @@ export async function getAllProducts(req, res, next) {
 export async function createProduct(req, res, next) {
     const parsed = productSchema.safeParse(req.body);
     if (!parsed.success) {
-        return res.status(400).json({ error: parsed.error.flatten() });
+        return sendValidationError(res, parsed.error);
     }
     try {
         const product = await productsServices.createProduct(parsed.data);
@@ -35,7 +36,7 @@ export async function createProduct(req, res, next) {
 export async function updateProduct(req, res, next) {
     const parsed = productSchema.safeParse(req.body);
     if (!parsed.success) {
-        return res.status(400).json({ error: parsed.error.flatten() });
+        return sendValidationError(res, parsed.error);
     }
     try {
         const product = await productsServices.updateProduct(Number(req.params.id), parsed.data);

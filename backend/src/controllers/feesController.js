@@ -1,5 +1,6 @@
 import * as feesServices from '../services/feesServices.js';
 import { feeSchema } from '../utils/schemas.js';
+import { sendValidationError } from '../utils/validation.js';
 
 export async function getAllActiveFees(req, res, next) {
     try {
@@ -22,7 +23,7 @@ export async function getAllFees(req, res, next) {
 export async function createFee(req, res, next) {
     const parsed = feeSchema.safeParse(req.body);
     if (!parsed.success) {
-        return res.status(400).json({ error: parsed.error.flatten() });
+        return sendValidationError(res, parsed.error);
     }
     try {
         const fee = await feesServices.createFee(parsed.data);
@@ -35,7 +36,7 @@ export async function createFee(req, res, next) {
 export async function updateFee(req, res, next) {
     const parsed = feeSchema.safeParse(req.body);
     if (!parsed.success) {
-        return res.status(400).json({ error: parsed.error.flatten() });
+        return sendValidationError(res, parsed.error);
     }
     try {
         const fee = await feesServices.updateFee(Number(req.params.id), parsed.data);

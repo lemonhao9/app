@@ -3,7 +3,7 @@ import { z } from "zod";
 z.config(z.locales.fr());
 
 export const userSchema = z.object({
-    email: z.string().email(),
+    email: z.email(),
     password: z.string().min(8, "Le mot de passe doit contenir au moins 8 caractères"),
     name: z.string().min(1).max(255, "Le nom ne peut dépasser 255 caractères"),
 });
@@ -26,7 +26,7 @@ export const bikeSchema = z.object({
 export const userUpdateSchema = z.object({
     name: z.string().min(1).max(255, "Le nom ne peut dépasser 255 caractères").optional(),
     phone: z.string().trim().min(1).max(20).optional(),
-    email: z.string().trim().email().optional(),
+    email: z.string().trim().pipe(z.email()).optional(),
     currentPassword: z.string().min(1).optional(),
     newPassword: z.string().min(8, "Le mot de passe doit contenir au moins 8 caractères").optional(),
 }).refine(data => !data.newPassword || !!data.currentPassword, {
@@ -40,13 +40,13 @@ export const zoneSchema = z.object({
     color: z.string().regex(/^#[0-9A-Fa-f]{6}$/).optional(),
     latitude: z.number().optional(),
     longitude: z.number().optional(),
-    geojson: z.object({
+    geojson: z.looseObject({
         type: z.literal('Feature'),
         geometry: z.object({
             type: z.literal('Polygon'),
             coordinates: z.array(z.array(z.tuple([z.number(), z.number()]))),
         }),
-    }).passthrough(),
+    }),
 
 });
 
@@ -113,7 +113,7 @@ export const addressCreateSchema = z.object({
 });
 
 export const technicianCreateSchema = z.object({
-    email: z.string().trim().email(),
+    email: z.string().trim().pipe(z.email()),
     name: z.string().trim().min(1).max(255),
     phone: z.string().trim().min(1).max(20).optional(),
 });
@@ -123,11 +123,11 @@ export const passwordChangeSchema = z.object({
     newPassword: z.string().min(8, "Le mot de passe doit contenir au moins 8 caractères"),
 });
 
-export const adminUserUpdateSchema = z.object({
+export const adminUserUpdateSchema = z.strictObject({
     name: z.string().trim().min(1).max(255).optional(),
-    email: z.string().trim().email().max(255).optional(),
+    email: z.string().trim().max(255).pipe(z.email()).optional(),
     phone: z.string().trim().max(20).transform(v => v || null).nullable().optional(),
-}).strict().refine(data => Object.keys(data).length > 0, {
+}).refine(data => Object.keys(data).length > 0, {
     message: 'Aucune donnée à modifier',
 });
 
@@ -146,18 +146,18 @@ export const planningQuerySchema = z.object({
 
 const toArray = value => (value === undefined || value === '' ? undefined : [].concat(value));
 
-export const clientListQuerySchema = z.object({
+export const clientListQuerySchema = z.strictObject({
     status: z.enum(['active', 'inactive', 'deleted']).optional(),
     q: z.string().trim().max(100).optional().transform(v => v || undefined),
     address: z.string().trim().max(100).optional().transform(v => v || undefined),
     zone_id: z.preprocess(toArray, z.array(z.coerce.number().int().positive()).max(50).optional()),
     limit: z.coerce.number().int().positive().max(50).default(20),
     offset: z.coerce.number().int().min(0).default(0),
-}).strict();
+});
 
 const requiredText = max => z.string().trim().min(1, 'Champ obligatoire').max(max, `${max} caractères maximum`);
 
-export const companyUpdateSchema = z.object({
+export const companyUpdateSchema = z.strictObject({
     name: requiredText(100),
     legal_form: requiredText(50),
     share_capital: z.number().int('Montant entier en euros').min(0).max(1_000_000_000),
@@ -166,8 +166,7 @@ export const companyUpdateSchema = z.object({
     address_line: requiredText(255),
     postal_code: z.string().trim().regex(/^\d{5}$/, 'Code postal à 5 chiffres'),
     city: requiredText(100),
-    email: z.string().trim().email('Adresse e-mail invalide').max(255),
-    publication_director: requiredText(255),
+    email: z.string().trim().max(255).pipe(z.email('Adresse e-mail invalide')), publication_director: requiredText(255),
     host_name: requiredText(255),
     host_address: requiredText(255),
-}).strict();
+});

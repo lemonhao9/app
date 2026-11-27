@@ -1,5 +1,6 @@
 import { describe, it, expect } from 'vitest';
-import { planningQuerySchema, clientListQuerySchema, companyUpdateSchema } from '../../src/utils/schemas.js';
+import { z } from 'zod';
+import { planningQuerySchema, clientListQuerySchema, companyUpdateSchema, technicianCreateSchema, userUpdateSchema, adminUserUpdateSchema, userSchema, zoneSchema } from '../../src/utils/schemas.js';
 
 describe('planningQuerySchema', () => {
     it('accepte une semaine', () => {
@@ -77,6 +78,54 @@ describe('messages de validation', () => {
     it('sont en français (z.config(z.locales.fr()))', () => {
         const result = companyUpdateSchema.safeParse({});
         expect(result.success).toBe(false);
-        expect(result.error.flatten().fieldErrors.name[0]).toMatch(/Entrée invalide/);
+        expect(z.flattenError(result.error).fieldErrors.name[0]).toMatch(/Entrée invalide/);    });
+});
+
+describe('adresses e-mail (API zod 4)', () => {
+    it('retire les espaces autour de l\'e-mail avant de le valider', () => {
+        const result = technicianCreateSchema.parse({ email: '  tech@hch.fr ', name: 'Jean' });
+
+        expect(result.email).toBe('tech@hch.fr');
+    });
+
+    it('retire aussi les espaces dans la mise à jour du profil et la fiche admin', () => {
+        expect(userUpdateSchema.parse({ email: ' client@hch.fr ' }).email).toBe('client@hch.fr');
+        expect(adminUserUpdateSchema.parse({ email: ' client@hch.fr ' }).email).toBe('client@hch.fr');
+    });
+
+    it('refuse une adresse invalide', () => {
+        expect(userSchema.safeParse({ email: 'pas-un-mail', password: 'motdepasse', name: 'Léo' }).success).toBe(false);
+        expect(technicianCreateSchema.safeParse({ email: 'tech@', name: 'Jean' }).success).toBe(false);
+    });
+
+    it('refuse une adresse de plus de 255 caractères dans la fiche admin', () => {
+        const longEmail = `${'a'.repeat(250)}@hch.fr`;
+
+        expect(adminUserUpdateSchema.safeParse({ email: longEmail }).success).toBe(false);
+    });
+});
+
+describe('objets stricts et permissifs (API zod 4)', () => {
+    it('refuse un champ inconnu dans la fiche admin d\'un utilisateur', () => {
+        const result = adminUserUpdateSchema.safeParse({ name: 'Léo', role: 'admin' });
+
+        expect(result.success).toBe(false);
+        expect(result.error.issues[0].code).toBe('unrecognized_keys');
+    });
+
+    it('refuse toujours une fiche admin vide', () => {
+        expect(adminUserUpdateSchema.safeParse({}).success).toBe(false);
+    });
+
+    it('conserve les propriétés supplémentaires du GeoJSON d\'une zone', () => {
+        const geojson = {
+            type: 'Feature',
+            properties: { nom: 'Lyon 1er' },
+            geometry: { type: 'Polygon', coordinates: [[[4.8, 45.7], [4.9, 45.7], [4.9, 45.8], [4.8, 45.7]]] },
+        };
+
+        const result = zoneSchema.parse({ name: 'Lyon 1er', geojson });
+
+        expect(result.geojson.properties).toEqual({ nom: 'Lyon 1er' });
     });
 });

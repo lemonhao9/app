@@ -1,16 +1,17 @@
 import { z } from 'zod';
 import * as authService from '../services/authServices.js';
 import { signupSchema, passwordChangeSchema } from '../utils/schemas.js';
+import { sendValidationError } from '../utils/validation.js';
 
 const loginSchema = z.object({
-    email: z.string().email(),
+    email: z.email(),
     password: z.string().min(1),
 });
 
 export async function signup(req, res, next) {
     const parsed = signupSchema.safeParse(req.body);
     if (!parsed.success) {
-        return res.status(400).json({ error: parsed.error.flatten() });
+        return sendValidationError(res, parsed.error);
     }
     try {
         const { token, user } = await authService.signup(parsed.data);
@@ -23,7 +24,7 @@ export async function signup(req, res, next) {
 export async function login(req, res, next) {
     const parsed = loginSchema.safeParse(req.body);
     if (!parsed.success) {
-        return res.status(400).json({ error: parsed.error.flatten() });
+        return sendValidationError(res, parsed.error);
     }
     try {
         const { token, user } = await authService.login(parsed.data);
@@ -48,7 +49,7 @@ export async function getCurrentUser(req, res, next) {
 export async function changePassword(req, res, next) {
     const parsed = passwordChangeSchema.safeParse(req.body);
     if (!parsed.success) {
-        return res.status(400).json({ error: parsed.error.flatten() });
+        return sendValidationError(res, parsed.error);
     }
     try {
         const result = await authService.changePassword(req.user.userId, parsed.data);

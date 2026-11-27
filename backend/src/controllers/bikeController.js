@@ -1,5 +1,6 @@
 import * as bikeService from '../services/bikeService.js';
 import { bikeSchema } from '../utils/schemas.js';
+import { sendValidationError } from '../utils/validation.js';
 
 export async function getMyBikes(req, res, next) {
     try {
@@ -13,7 +14,7 @@ export async function getMyBikes(req, res, next) {
 export async function createBike(req, res, next) {
     const parsed = bikeSchema.safeParse(req.body);
     if (!parsed.success) {
-        return res.status(400).json({error: parsed.error.flatten()});
+        return sendValidationError(res, parsed.error);
     }
     try{
         const photo = req.file ? `/uploads/${req.file.filename}` : null;
@@ -27,7 +28,7 @@ export async function createBike(req, res, next) {
 export async function updateBike(req, res, next) {
     const parsed = bikeSchema.safeParse(req.body);
     if (!parsed.success) {
-        return res.status(400).json({error: parsed.error.flatten()});
+        return sendValidationError(res, parsed.error);
     }
     try {
         const photo = req.file ? `/uploads/${req.file.filename}` : undefined;

@@ -1,11 +1,12 @@
 import {z} from 'zod';
 import * as userService from '../services/userService.js';
 import { technicianCreateSchema, userUpdateSchema, adminUserUpdateSchema, clientListQuerySchema } from '../utils/schemas.js';
+import { sendValidationError } from '../utils/validation.js';
 
 export async function createTechnician(req, res, next) {
     const parsed = technicianCreateSchema.safeParse(req.body);
     if (!parsed.success) {
-        return res.status(400).json({error: parsed.error.flatten()});
+        return sendValidationError(res, parsed.error);
     }
     try {
         const { user, temporaryPassword } = await userService.createTechnician(parsed.data);
@@ -38,7 +39,7 @@ export async function deleteAccount(req, res, next) {
 export async function updateProfile(req, res, next) {
     const parsed = userUpdateSchema.safeParse(req.body);
     if (!parsed.success) {
-        return res.status(400).json({error: parsed.error.flatten()});
+        return sendValidationError(res, parsed.error);
     }
     try {
         const picture = req.file ? `/uploads/${req.file.filename}` : undefined;
@@ -58,7 +59,7 @@ const userListQuerySchema = z.object({
 export async function listUsers(req, res, next) {
     const parsed = userListQuerySchema.safeParse(req.query);
     if (!parsed.success) {
-        return res.status(400).json({error: parsed.error.flatten()});
+        return sendValidationError(res, parsed.error);
     }
     try {
         const result = await userService.listUsers(parsed.data);
@@ -71,7 +72,7 @@ export async function listUsers(req, res, next) {
 export async function listClients(req, res, next) {
     const parsed = clientListQuerySchema.safeParse(req.query);
     if (!parsed.success) {
-        return res.status(400).json({ error: parsed.error.flatten() });
+        return sendValidationError(res, parsed.error);
     }
     try {
         const { zone_id: zoneIds, ...filters } = parsed.data;
@@ -103,7 +104,7 @@ export async function listUserBikes(req, res, next) {
 export async function updateUserByAdmin(req, res, next) {
     const parsed = adminUserUpdateSchema.safeParse(req.body);
     if (!parsed.success) {
-        return res.status(400).json({ error: parsed.error.flatten() });
+        return sendValidationError(res, parsed.error);
     }
     try {
         const user = await userService.updateUserByAdmin(Number(req.params.id), parsed.data);
