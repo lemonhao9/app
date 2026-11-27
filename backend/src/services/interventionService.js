@@ -134,11 +134,21 @@ export async function addPhotos(userId, role, interventionId, files) {
         err.status = 409;
         throw err;
     }
-    const photos = [];
-    for (const file of files) {
-        photos.push(await interventionRepository.addPhoto(interventionId, `/uploads/${file.filename}`));
+        const client = await getClient();
+    try {
+        await client.query('BEGIN');
+        const photos = [];
+        for (const file of files) {
+            photos.push(await interventionRepository.addPhoto(interventionId, `/uploads/${file.filename}`, client));
+        }
+        await client.query('COMMIT');
+        return photos;
+    } catch (err) {
+        await client.query('ROLLBACK');
+        throw err;
+    } finally {
+        client.release();
     }
-    return photos;
 }
 
 export async function cancelIntervention(userId, role, interventionId) {

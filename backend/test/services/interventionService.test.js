@@ -164,7 +164,7 @@ describe('interventionService.reassignIntervention', () => {
         expect(addressRepository.findById).not.toHaveBeenCalled();
     });
 
-        it("lève une 409 si le technicien du nouveau créneau ne couvre pas la zone figée de l'intervention", async () => {
+    it("lève une 409 si le technicien du nouveau créneau ne couvre pas la zone figée de l'intervention", async () => {
         interventionRepository.findById.mockResolvedValue({ intervention_id: 1, slot_id: 4, address_id: 3, zone_id: 26, state: 'prochainement' });
         slotRepository.findBookableInfo.mockResolvedValue({ slot_id: 5, fee_id: 1, technician_id: 7, bookable: true });
         slotRepository.findById.mockResolvedValue({ slot_id: 4, fee_id: 1 });
@@ -397,6 +397,13 @@ describe('interventionService.completeIntervention', () => {
 });
 
 describe('interventionService.addPhotos', () => {
+    let client;
+
+    beforeEach(() => {
+        client = { query: vi.fn().mockResolvedValue({}), release: vi.fn() };
+        db.getClient.mockResolvedValue(client);
+    });
+    
     it("lève une 404 si l'utilisateur n'a pas accès à l'intervention", async () => {
         interventionRepository.findById.mockResolvedValue({ client_id: 1, technician_id: 9 });
 
@@ -413,8 +420,11 @@ describe('interventionService.addPhotos', () => {
         const result = await interventionService.addPhotos(9, 'technician', 42, [{ filename: 'a.jpg' }, { filename: 'b.jpg' }]);
 
         expect(interventionRepository.addPhoto).toHaveBeenCalledTimes(2);
-        expect(interventionRepository.addPhoto).toHaveBeenNthCalledWith(1, 42, '/uploads/a.jpg');
-        expect(interventionRepository.addPhoto).toHaveBeenNthCalledWith(2, 42, '/uploads/b.jpg');
+        expect(interventionRepository.addPhoto).toHaveBeenNthCalledWith(1, 42, '/uploads/a.jpg', client);
+        expect(interventionRepository.addPhoto).toHaveBeenNthCalledWith(2, 42, '/uploads/b.jpg', client);
+        expect(client.query).toHaveBeenNthCalledWith(1, 'BEGIN');
+        expect(client.query).toHaveBeenLastCalledWith('COMMIT');
+        expect(client.release).toHaveBeenCalledTimes(1);
         expect(result).toEqual([{ photo_id: 1, url: '/uploads/a.jpg' }, { photo_id: 2, url: '/uploads/b.jpg' }]);
     });
 
@@ -431,8 +441,20 @@ describe('interventionService.addPhotos', () => {
 
         const result = await interventionService.addPhotos(1, 'client', 42, [{ filename: 'a.jpg' }]);
 
-        expect(interventionRepository.addPhoto).toHaveBeenCalledWith(42, '/uploads/a.jpg');
+        expect(interventionRepository.addPhoto).toHaveBeenCalledWith(42, '/uploads/a.jpg', client);
         expect(result).toEqual([{ photo_id: 1, url: '/uploads/a.jpg' }]);
+    });
+
+    it("n'enregistre aucune photo si l'une d'elles échoue (transaction annulée)", async () => {
+        interventionRepository.findById.mockResolvedValue({ client_id: 1, technician_id: 9, state: 'en cours' });
+        interventionRepository.addPhoto
+            .mockResolvedValueOnce({ photo_id: 1, url: '/uploads/a.jpg' })
+            .mockRejectedValueOnce(new Error('connexion perdue'));
+
+        await expect(interventionService.addPhotos(9, 'technician', 42, [{ filename: 'a.jpg' }, { filename: 'b.jpg' }])).rejects.toThrow('connexion perdue');
+        expect(client.query).toHaveBeenCalledWith('ROLLBACK');
+        expect(client.query).not.toHaveBeenCalledWith('COMMIT');
+        expect(client.release).toHaveBeenCalledTimes(1);
     });
 
     it("refuse les photos du technicien tant que l'intervention n'a pas démarré", async () => {

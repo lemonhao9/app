@@ -2,7 +2,7 @@ import { Router } from 'express';
 import {authenticate} from '../middlewares/authenticate.js';
 import { authorize } from '../middlewares/authorize.js';
 import * as userController from '../controllers/usersController.js';
-import { upload } from '../middlewares/upload.js';
+import { uploadImage } from '../middlewares/upload.js';
 import { validateIdParam } from '../middlewares/validateIdParam.js';
 
 const router = Router();
@@ -23,7 +23,7 @@ router.post('/:id/temporary-password', authenticate, authorize('admin'), userCon
 
 router.delete('/account', authenticate, authorize('client'), userController.deleteAccount);
 
-router.put('/me', authenticate, upload.single('picture'), userController.updateProfile);
+router.put('/me', authenticate, uploadImage('picture'), userController.updateProfile);
 
 router.put('/:id', authenticate, authorize('admin'), userController.updateUserByAdmin);
 

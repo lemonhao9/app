@@ -2,14 +2,14 @@ import { Router } from 'express';
 import * as interventionController from '../controllers/interventionController.js';
 import { authenticate } from '../middlewares/authenticate.js';
 import { authorize } from '../middlewares/authorize.js';
-import { upload } from '../middlewares/upload.js';
+import { uploadImages } from '../middlewares/upload.js';
 import { validateIdParam } from '../middlewares/validateIdParam.js';
 
 const router = Router();
 
 router.param('id', validateIdParam);
 router.post('/', authenticate, authorize('client'), interventionController.createIntervention);
-router.post('/:id/photos', authenticate, authorize('client', 'technician'), upload.array('photos', 6), interventionController.addPhotos);
+router.post('/:id/photos', authenticate, authorize('client', 'technician'), uploadImages('photos', 6), interventionController.addPhotos);
 router.get('/me', authenticate, authorize('client'), interventionController.getMyInterventions);
 router.get('/today', authenticate, authorize('technician'), interventionController.getTodayForTechnician);
 router.get('/history', authenticate, authorize('technician'), interventionController.getHistoryForTechnician);
